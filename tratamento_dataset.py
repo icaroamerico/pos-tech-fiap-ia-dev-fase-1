@@ -530,7 +530,10 @@ def verificar_variancia(nome: str, df: pd.DataFrame) -> None:
             baixa_variabilidade.append((coluna, round(proporcao_moda * 100, 2)))
 
     print(f"Colunas constantes: {constantes or 'nenhuma'}")
-    print(f"Colunas com baixa variabilidade (>=99% concentrado): {baixa_variabilidade or 'nenhuma'}")
+    print(
+        f"Colunas com baixa variabilidade (>=99% concentrado): "
+        f"{baixa_variabilidade or 'nenhuma'}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -576,7 +579,9 @@ def verificar_regras_especificas(nome: str, df: pd.DataFrame) -> None:
 
     # --- Unidades (ex.: Feet -> cm) ---
     colunas_altura = [c for c in df.columns if "height" in c.strip().lower()]
-    colunas_pes = [c for c in df.columns if "feet" in c.strip().lower() or "(ft)" in c.strip().lower()]
+    colunas_pes = [
+        c for c in df.columns if "feet" in c.strip().lower() or "(ft)" in c.strip().lower()
+    ]
     if colunas_pes:
         print(f"Conversão de unidade necessária (pés -> cm) em: {colunas_pes}")
     elif colunas_altura:
@@ -592,7 +597,10 @@ def verificar_regras_especificas(nome: str, df: pd.DataFrame) -> None:
         if pd.api.types.is_numeric_dtype(df[coluna]):
             valores_fora_do_padrao = set(df[coluna].dropna().unique()) - {0, 1}
             if valores_fora_do_padrao:
-                print(f"Coluna '{coluna}': já é numérica, mas com valores fora de 0/1: {valores_fora_do_padrao}")
+                print(
+                    f"Coluna '{coluna}': já é numérica, mas com valores "
+                    f"fora de 0/1: {valores_fora_do_padrao}"
+                )
             else:
                 print(f"Coluna '{coluna}': já convertida para 0/1 (no-op).")
         else:
@@ -605,14 +613,20 @@ def verificar_regras_especificas(nome: str, df: pd.DataFrame) -> None:
         print("Coluna 'Blood Group' não encontrada neste arquivo.")
 
     # --- Blood Pressure (separar sistólica/diastólica) ---
-    colunas_bp_separadas = [c for c in df.columns if "systolic" in c.strip().lower() or "diastolic" in c.strip().lower()]
+    colunas_bp_separadas = [
+        c for c in df.columns
+        if "systolic" in c.strip().lower() or "diastolic" in c.strip().lower()
+    ]
     colunas_bp_combinadas = []
     for coluna in df.select_dtypes(include="object").columns:
         valores = df[coluna].dropna().astype(str).str.strip()
         if not valores.empty and valores.str.match(_PADRAO_PRESSAO_COMBINADA).mean() > 0.5:
             colunas_bp_combinadas.append(coluna)
     if colunas_bp_combinadas:
-        print(f"Blood Pressure combinada (ex.: '120/80') precisa ser separada em: {colunas_bp_combinadas}")
+        print(
+            f"Blood Pressure combinada (ex.: '120/80') precisa ser "
+            f"separada em: {colunas_bp_combinadas}"
+        )
     elif colunas_bp_separadas:
         print(f"Blood Pressure já separada em Sistólica/Diastólica (no-op): {colunas_bp_separadas}")
     else:
@@ -630,7 +644,9 @@ def verificar_regras_especificas(nome: str, df: pd.DataFrame) -> None:
 # Verificação 17: Valores impossíveis
 # ---------------------------------------------------------------------------
 
-_PALAVRAS_CHAVE_NAO_NEGATIVAS = ("age", "idade", "height", "altura", "weight", "peso", "pressure", "bp ")
+_PALAVRAS_CHAVE_NAO_NEGATIVAS = (
+    "age", "idade", "height", "altura", "weight", "peso", "pressure", "bp ",
+)
 
 
 def verificar_valores_impossiveis(nome: str, df: pd.DataFrame) -> None:
@@ -679,7 +695,10 @@ def verificar_datas(nome: str, df: pd.DataFrame) -> None:
         return
 
     print(f"Colunas já como datetime: {colunas_datetime or 'nenhuma'}")
-    print(f"Colunas de data armazenadas como texto (precisam padronização): {colunas_data_texto or 'nenhuma'}")
+    print(
+        f"Colunas de data armazenadas como texto (precisam padronização): "
+        f"{colunas_data_texto or 'nenhuma'}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -693,14 +712,20 @@ def verificar_encoding(nome: str, df: pd.DataFrame) -> None:
     padrao_mojibake = r"[ÃÂ][\x80-\xBF]|�"
 
     colunas_com_problema_no_nome = [c for c in df.columns if re.search(padrao_mojibake, c)]
-    print(f"Nomes de coluna com possível problema de encoding: {colunas_com_problema_no_nome or 'nenhum'}")
+    print(
+        f"Nomes de coluna com possível problema de encoding: "
+        f"{colunas_com_problema_no_nome or 'nenhum'}"
+    )
 
     colunas_com_problema_no_valor = []
     for coluna in _colunas_texto(df):
         valores = df[coluna].dropna().astype(str)
         if valores.str.contains(padrao_mojibake, regex=True).any():
             colunas_com_problema_no_valor.append(coluna)
-    print(f"Colunas com valores com possível problema de encoding: {colunas_com_problema_no_valor or 'nenhuma'}")
+    print(
+        f"Colunas com valores com possível problema de encoding: "
+        f"{colunas_com_problema_no_valor or 'nenhuma'}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1029,7 +1054,9 @@ def tratar_outliers(df: pd.DataFrame, resumo: dict) -> pd.DataFrame:
             continue
         limite_inferior, limite_superior = q1 - 1.5 * iqr, q3 + 1.5 * iqr
 
-        fora_do_limite = ((df[coluna] < limite_inferior) | (df[coluna] > limite_superior)) & df[coluna].notna()
+        fora_do_limite = (
+            (df[coluna] < limite_inferior) | (df[coluna] > limite_superior)
+        ) & df[coluna].notna()
         qtd_tratada = int(fora_do_limite.sum())
         if qtd_tratada:
             df[coluna] = df[coluna].clip(lower=limite_inferior, upper=limite_superior)
@@ -1121,10 +1148,14 @@ def imprimir_resumo(nome: str, resumo: dict) -> None:
     print(f"Valores ausentes preenchidos: {resumo['valores_ausentes_preenchidos']}")
     print(f"Outliers tratados: {resumo['outliers_tratados']}")
     print(f"Datas convertidas: {resumo['datas_convertidas']}")
-    print(f"Blood Pressure separada: {resumo['blood_pressure_separada'] or 'não aplicável (já estava separada ou não existe)'}")
-    print(f"Yes/No convertidos: {resumo['yes_no_convertidos'] or 'não aplicável (já estavam em 0/1)'}")
-    print(f"Unidades convertidas: {resumo['unidades_convertidas'] or 'não aplicável (já estava na unidade esperada)'}")
-    print(f"Colunas removidas (constantes/irrelevantes): {resumo['colunas_removidas'] or 'nenhuma'}")
+    bp_separada = resumo["blood_pressure_separada"] or "não aplicável (já separada ou inexistente)"
+    yn_convertidos = resumo["yes_no_convertidos"] or "não aplicável (já estavam em 0/1)"
+    unidades = resumo["unidades_convertidas"] or "não aplicável (já na unidade esperada)"
+    print(f"Blood Pressure separada: {bp_separada}")
+    print(f"Yes/No convertidos: {yn_convertidos}")
+    print(f"Unidades convertidas: {unidades}")
+    colunas_removidas = resumo["colunas_removidas"] or "nenhuma"
+    print(f"Colunas removidas (constantes/irrelevantes): {colunas_removidas}")
 
 
 def salvar_dataset(nome: str, df: pd.DataFrame, pasta_saida: Path = OUTPUT_DIR) -> None:
@@ -1144,18 +1175,35 @@ def salvar_dataset(nome: str, df: pd.DataFrame, pasta_saida: Path = OUTPUT_DIR) 
     print(f"Dataset tratado salvo em: {caminho_saida}")
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Ponto de entrada: carrega os dados, roda a ETAPA 1 (diagnóstico) por
+    completo e só então roda a ETAPA 2 (tratamento) e a exportação.
+
+    Cada arquivo é isolado em seu próprio try/except: um problema em um
+    dataset (ex.: dado corrompido pela sujeira do arquivo) não deve
+    interromper o processamento dos demais arquivos.
+    """
     dados = carregar_datasets()
     print(f"Quantidade de arquivos encontrados em base_dados/: {len(dados)}")
 
     # ETAPA 1 — diagnóstico completo de todos os arquivos, sempre executado
     # e independente da ETAPA 2 (nenhum dado é alterado aqui).
     for nome_arquivo, dataframe in dados.items():
-        executar_diagnostico(nome_arquivo, dataframe)
+        try:
+            executar_diagnostico(nome_arquivo, dataframe)
+        except Exception as exc:
+            print(f"[ERRO] Falha no diagnóstico de '{nome_arquivo}': {exc}")
 
     # ETAPA 2 — tratamento e exportação, um arquivo por vez.
     for nome_arquivo, dataframe in dados.items():
         print(f"\n{'#' * 70}\nTRATAMENTO — {nome_arquivo}\n{'#' * 70}")
-        dataframe_tratado, resumo = executar_tratamento(nome_arquivo, dataframe.copy())
-        imprimir_resumo(nome_arquivo, resumo)
-        salvar_dataset(nome_arquivo, dataframe_tratado)
+        try:
+            dataframe_tratado, resumo = executar_tratamento(nome_arquivo, dataframe.copy())
+            imprimir_resumo(nome_arquivo, resumo)
+            salvar_dataset(nome_arquivo, dataframe_tratado)
+        except Exception as exc:
+            print(f"[ERRO] Falha no tratamento/exportação de '{nome_arquivo}': {exc}")
+
+
+if __name__ == "__main__":
+    main()
