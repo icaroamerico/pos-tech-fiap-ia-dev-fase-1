@@ -162,27 +162,7 @@ def verificar_linhas_duplicadas(nome: str, df: pd.DataFrame) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Verificação 4: Colunas duplicadas
-# ---------------------------------------------------------------------------
-
-def verificar_colunas_duplicadas(nome: str, df: pd.DataFrame) -> None:
-    """Detecta colunas com nomes repetidos ou conteúdo idêntico."""
-    print(f"\n=== [4] Colunas duplicadas — {nome} ===")
-
-    nomes_repetidos = df.columns[df.columns.duplicated()].tolist()
-    print(f"Nomes de coluna repetidos: {nomes_repetidos or 'nenhum'}")
-
-    colunas_conteudo_igual = []
-    colunas = list(df.columns)
-    for i, col_a in enumerate(colunas):
-        for col_b in colunas[i + 1:]:
-            if df[col_a].equals(df[col_b]):
-                colunas_conteudo_igual.append((col_a, col_b))
-    print(f"Colunas com conteúdo idêntico: {colunas_conteudo_igual or 'nenhuma'}")
-
-
-# ---------------------------------------------------------------------------
-# Verificação 5: Tipos incorretos
+# Verificação 4: Tipos incorretos
 # ---------------------------------------------------------------------------
 
 # Padrões simples de data usados apenas para detecção (não faz parsing real).
@@ -198,7 +178,7 @@ def verificar_tipos_incorretos(nome: str, df: pd.DataFrame) -> None:
     pontual (ex.: valor "a" e "1.99." em vez de número), quando deveriam ser
     inteiramente numéricas.
     """
-    print(f"\n=== [5] Tipos incorretos — {nome} ===")
+    print(f"\n=== [4] Tipos incorretos — {nome} ===")
     encontrou_problema = False
 
     for coluna in df.select_dtypes(include="object").columns:
@@ -244,106 +224,6 @@ def _colunas_texto(df: pd.DataFrame) -> list:
     ]
 
 
-# ---------------------------------------------------------------------------
-# Verificação 6: Valores inconsistentes (categorias)
-# ---------------------------------------------------------------------------
-
-def verificar_valores_inconsistentes(nome: str, df: pd.DataFrame) -> None:
-    """Detecta categorias que representam o mesmo valor com grafias
-    diferentes (ex.: 'Sim'/'SIM'/'Yes'/'S', 'Não'/'NO'/'No'/'N'), agrupando
-    por forma normalizada (minúsculo e sem espaços nas bordas)."""
-    print(f"\n=== [6] Valores inconsistentes (categorias) — {nome} ===")
-    encontrou_problema = False
-
-    for coluna in _colunas_texto(df):
-        valores = df[coluna].dropna().astype(str)
-        normalizados = valores.str.strip().str.lower()
-        agrupado = pd.DataFrame({"original": valores, "normalizado": normalizados})
-        for _, grupo in agrupado.groupby("normalizado"):
-            variantes = grupo["original"].unique()
-            if len(variantes) > 1:
-                print(f"Coluna '{coluna}': variantes para o mesmo valor -> {list(variantes)}")
-                encontrou_problema = True
-
-    if not encontrou_problema:
-        print("Nenhuma inconsistência de categoria encontrada.")
-
-
-# ---------------------------------------------------------------------------
-# Verificação 7: Espaços extras
-# ---------------------------------------------------------------------------
-
-def verificar_espacos_extras(nome: str, df: pd.DataFrame) -> None:
-    """Detecta valores de texto com espaços extras no início/fim/meio."""
-    print(f"\n=== [7] Espaços extras — {nome} ===")
-    encontrou_problema = False
-
-    for coluna in _colunas_texto(df):
-        valores = df[coluna].dropna().astype(str)
-        com_espaco_borda = (valores != valores.str.strip()).sum()
-        com_espaco_duplo = valores.str.contains(r"  +", regex=True).sum()
-        if com_espaco_borda or com_espaco_duplo:
-            print(
-                f"Coluna '{coluna}': {com_espaco_borda} valor(es) com espaço "
-                f"nas bordas, {com_espaco_duplo} valor(es) com espaços duplos."
-            )
-            encontrou_problema = True
-
-    if not encontrou_problema:
-        print("Nenhum espaço extra encontrado.")
-
-
-# ---------------------------------------------------------------------------
-# Verificação 8: Capitalização
-# ---------------------------------------------------------------------------
-
-def verificar_capitalizacao(nome: str, df: pd.DataFrame) -> None:
-    """Detecta o mesmo valor textual escrito com capitalização diferente
-    (ex.: 'joao'/'JOAO'/'Joao'/'João')."""
-    print(f"\n=== [8] Capitalização — {nome} ===")
-    encontrou_problema = False
-
-    for coluna in _colunas_texto(df):
-        valores = df[coluna].dropna().astype(str).str.strip()
-        agrupado = pd.DataFrame({"original": valores, "chave": valores.str.lower()})
-        for _, grupo in agrupado.groupby("chave"):
-            capitalizacoes = grupo["original"].unique()
-            if len(capitalizacoes) > 1:
-                print(f"Coluna '{coluna}': capitalizações distintas -> {list(capitalizacoes)}")
-                encontrou_problema = True
-
-    if not encontrou_problema:
-        print("Nenhuma inconsistência de capitalização encontrada.")
-
-
-# ---------------------------------------------------------------------------
-# Verificação 9: Caracteres especiais / encoding
-# ---------------------------------------------------------------------------
-
-def verificar_caracteres_especiais(nome: str, df: pd.DataFrame) -> None:
-    """Detecta caracteres não imprimíveis ou indícios de problema de
-    encoding (ex.: sequências mojibake típicas de UTF-8 lido como Latin-1)."""
-    print(f"\n=== [9] Caracteres especiais — {nome} ===")
-    encontrou_problema = False
-    padrao_mojibake = r"[ÃÂ][\x80-\xBF]|�"
-    padrao_nao_imprimivel = r"[\x00-\x08\x0b\x0c\x0e-\x1f]"
-
-    for coluna in _colunas_texto(df):
-        valores = df[coluna].dropna().astype(str)
-        qtd_mojibake = valores.str.contains(padrao_mojibake, regex=True).sum()
-        qtd_nao_imprimivel = valores.str.contains(padrao_nao_imprimivel, regex=True).sum()
-        if qtd_mojibake or qtd_nao_imprimivel:
-            print(
-                f"Coluna '{coluna}': {qtd_mojibake} valor(es) com possível "
-                f"mojibake, {qtd_nao_imprimivel} valor(es) com caractere não "
-                f"imprimível."
-            )
-            encontrou_problema = True
-
-    if not encontrou_problema:
-        print("Nenhum caractere especial/problema de encoding encontrado.")
-
-
 def _colunas_numericas_para_analise(df: pd.DataFrame) -> list:
     """Colunas numéricas relevantes para outliers/distribuição/correlação.
 
@@ -363,7 +243,7 @@ def _colunas_numericas_para_analise(df: pd.DataFrame) -> list:
 
 
 # ---------------------------------------------------------------------------
-# Verificação 10: Outliers (IQR, Z-score, Boxplot)
+# Verificação 5: Outliers (IQR, Z-score, Boxplot)
 # ---------------------------------------------------------------------------
 
 def verificar_outliers(nome: str, df: pd.DataFrame) -> None:
@@ -373,7 +253,7 @@ def verificar_outliers(nome: str, df: pd.DataFrame) -> None:
     Apenas relata a quantidade encontrada; a decisão de tratar (e como) fica
     para a ETAPA 2, com justificativa.
     """
-    print(f"\n=== [10] Outliers — {nome} ===")
+    print(f"\n=== [5] Outliers — {nome} ===")
     colunas = _colunas_numericas_para_analise(df)
     linhas = []
 
@@ -426,7 +306,7 @@ def verificar_outliers(nome: str, df: pd.DataFrame) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Verificação 11: Distribuição das variáveis
+# Verificação 6: Distribuição das variáveis
 # ---------------------------------------------------------------------------
 
 def verificar_distribuicao(nome: str, df: pd.DataFrame) -> None:
@@ -434,7 +314,7 @@ def verificar_distribuicao(nome: str, df: pd.DataFrame) -> None:
     baixa cardinalidade (categóricas/binárias) e estatísticas de forma
     (assimetria) para colunas contínuas, como substituto textual simples de
     histograma."""
-    print(f"\n=== [11] Distribuição das variáveis — {nome} ===")
+    print(f"\n=== [6] Distribuição das variáveis — {nome} ===")
     colunas = _colunas_numericas_para_analise(df)
 
     for coluna in colunas:
@@ -451,13 +331,13 @@ def verificar_distribuicao(nome: str, df: pd.DataFrame) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Verificação 12: Balanceamento da variável alvo
+# Verificação 7: Balanceamento da variável alvo
 # ---------------------------------------------------------------------------
 
 def verificar_balanceamento_target(nome: str, df: pd.DataFrame) -> None:
     """Verifica o balanceamento da variável alvo (ex.: 'PCOS (Y/N)'), quando
     existir no dataset."""
-    print(f"\n=== [12] Balanceamento da variável alvo — {nome} ===")
+    print(f"\n=== [7] Balanceamento da variável alvo — {nome} ===")
     colunas_alvo = [c for c in df.columns if "pcos" in c.strip().lower()]
 
     if not colunas_alvo:
@@ -472,7 +352,7 @@ def verificar_balanceamento_target(nome: str, df: pd.DataFrame) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Verificação 13: Correlação
+# Verificação 8: Correlação
 # ---------------------------------------------------------------------------
 
 def verificar_correlacao(nome: str, df: pd.DataFrame, limite: float = 0.8) -> None:
@@ -483,7 +363,7 @@ def verificar_correlacao(nome: str, df: pd.DataFrame, limite: float = 0.8) -> No
     convertidas para numérico apenas para esta análise (via
     ``pd.to_numeric(errors="coerce")``), sem alterar o DataFrame original.
     """
-    print(f"\n=== [13] Correlação — {nome} ===")
+    print(f"\n=== [8] Correlação — {nome} ===")
     colunas = _colunas_numericas_para_analise(df)
     if len(colunas) < 2:
         print("Colunas numéricas insuficientes para calcular correlação.")
@@ -507,14 +387,14 @@ def verificar_correlacao(nome: str, df: pd.DataFrame, limite: float = 0.8) -> No
 
 
 # ---------------------------------------------------------------------------
-# Verificação 14: Variância
+# Verificação 9: Variância
 # ---------------------------------------------------------------------------
 
 def verificar_variancia(nome: str, df: pd.DataFrame) -> None:
     """Detecta colunas constantes (variância zero) e colunas com baixíssima
     variabilidade (mais de 99% dos valores concentrados em uma só
     categoria)."""
-    print(f"\n=== [14] Variância — {nome} ===")
+    print(f"\n=== [9] Variância — {nome} ===")
     constantes = []
     baixa_variabilidade = []
 
@@ -537,14 +417,14 @@ def verificar_variancia(nome: str, df: pd.DataFrame) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Verificação 15: Colunas irrelevantes
+# Verificação 10: Colunas irrelevantes
 # ---------------------------------------------------------------------------
 
 def verificar_colunas_irrelevantes(nome: str, df: pd.DataFrame) -> None:
     """Identifica possíveis colunas irrelevantes: IDs/códigos, colunas
     totalmente vazias e colunas geradas automaticamente pelo pandas
     (``Unnamed: N``) sem conteúdo útil."""
-    print(f"\n=== [15] Colunas irrelevantes — {nome} ===")
+    print(f"\n=== [10] Colunas irrelevantes — {nome} ===")
 
     colunas_id = [c for c in df.columns if c.strip().lower() in CANDIDATOS_ID]
     colunas_vazias = [c for c in df.columns if df[c].isna().all()]
@@ -560,7 +440,7 @@ def verificar_colunas_irrelevantes(nome: str, df: pd.DataFrame) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Verificação 16: Regras específicas do dataset
+# Verificação 11: Regras específicas do dataset
 # ---------------------------------------------------------------------------
 
 _PADRAO_PRESSAO_COMBINADA = r"^\d{2,3}\s*/\s*\d{2,3}$"
@@ -575,7 +455,7 @@ def verificar_regras_especificas(nome: str, df: pd.DataFrame) -> None:
     existir e ainda estiver no formato "bruto"; caso já esteja no formato
     esperado, é reportada como no-op.
     """
-    print(f"\n=== [16] Regras específicas do dataset — {nome} ===")
+    print(f"\n=== [11] Regras específicas do dataset — {nome} ===")
 
     # --- Unidades (ex.: Feet -> cm) ---
     colunas_altura = [c for c in df.columns if "height" in c.strip().lower()]
@@ -641,7 +521,7 @@ def verificar_regras_especificas(nome: str, df: pd.DataFrame) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Verificação 17: Valores impossíveis
+# Verificação 12: Valores impossíveis
 # ---------------------------------------------------------------------------
 
 _PALAVRAS_CHAVE_NAO_NEGATIVAS = (
@@ -652,7 +532,7 @@ _PALAVRAS_CHAVE_NAO_NEGATIVAS = (
 def verificar_valores_impossiveis(nome: str, df: pd.DataFrame) -> None:
     """Detecta valores impossíveis: idade/altura/peso/pressão negativos e
     datas futuras."""
-    print(f"\n=== [17] Valores impossíveis — {nome} ===")
+    print(f"\n=== [12] Valores impossíveis — {nome} ===")
     encontrou_problema = False
 
     for coluna in df.select_dtypes(include=[np.number]).columns:
@@ -676,85 +556,12 @@ def verificar_valores_impossiveis(nome: str, df: pd.DataFrame) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Verificação 18: Datas
-# ---------------------------------------------------------------------------
-
-def verificar_datas(nome: str, df: pd.DataFrame) -> None:
-    """Identifica colunas de data e reporta se o formato precisa ser
-    padronizado (datas ainda como texto)."""
-    print(f"\n=== [18] Datas — {nome} ===")
-    colunas_datetime = list(df.select_dtypes(include="datetime").columns)
-    colunas_data_texto = [
-        c
-        for c in df.select_dtypes(include="object").columns
-        if df[c].dropna().astype(str).str.strip().str.match(_PADRAO_DATA).mean() > 0.5
-    ]
-
-    if not colunas_datetime and not colunas_data_texto:
-        print("Nenhuma coluna de data identificada neste arquivo.")
-        return
-
-    print(f"Colunas já como datetime: {colunas_datetime or 'nenhuma'}")
-    print(
-        f"Colunas de data armazenadas como texto (precisam padronização): "
-        f"{colunas_data_texto or 'nenhuma'}"
-    )
-
-
-# ---------------------------------------------------------------------------
-# Verificação 19: Encoding
-# ---------------------------------------------------------------------------
-
-def verificar_encoding(nome: str, df: pd.DataFrame) -> None:
-    """Verifica problemas de encoding tanto nos nomes das colunas quanto nos
-    valores de texto (ex.: leitura UTF-8 de arquivo salvo em Latin-1)."""
-    print(f"\n=== [19] Encoding — {nome} ===")
-    padrao_mojibake = r"[ÃÂ][\x80-\xBF]|�"
-
-    colunas_com_problema_no_nome = [c for c in df.columns if re.search(padrao_mojibake, c)]
-    print(
-        f"Nomes de coluna com possível problema de encoding: "
-        f"{colunas_com_problema_no_nome or 'nenhum'}"
-    )
-
-    colunas_com_problema_no_valor = []
-    for coluna in _colunas_texto(df):
-        valores = df[coluna].dropna().astype(str)
-        if valores.str.contains(padrao_mojibake, regex=True).any():
-            colunas_com_problema_no_valor.append(coluna)
-    print(
-        f"Colunas com valores com possível problema de encoding: "
-        f"{colunas_com_problema_no_valor or 'nenhuma'}"
-    )
-
-
-# ---------------------------------------------------------------------------
-# Verificação 20: Consistência geral
-# ---------------------------------------------------------------------------
-
-def verificar_consistencia_geral(nome: str, df: pd.DataFrame) -> None:
-    """Checagem-guarda-chuva para outras inconsistências relevantes para ML
-    que não se encaixam nos itens anteriores: nomes de coluna com espaços
-    extras/duplicados, e colunas Yes/No com valores fora de {0, 1}."""
-    print(f"\n=== [20] Consistência geral — {nome} ===")
-    encontrou_problema = False
-
-    nomes_com_espaco = [c for c in df.columns if c != c.strip() or "  " in c]
-    if nomes_com_espaco:
-        print(f"Nomes de coluna com espaços extras/duplicados: {nomes_com_espaco}")
-        encontrou_problema = True
-
-    if not encontrou_problema:
-        print("Nenhuma inconsistência geral adicional encontrada.")
-
-
-# ---------------------------------------------------------------------------
 # ETAPA 1 — Runner do diagnóstico completo
 # ---------------------------------------------------------------------------
 
 def executar_diagnostico(nome: str, df: pd.DataFrame) -> None:
-    """Executa as 20 verificações obrigatórias sobre ``df``, sempre, na
-    ordem do prompt, independente de haver ou não problema em cada uma.
+    """Executa as 12 verificações mantidas sobre ``df``, sempre, na ordem do
+    prompt, independente de haver ou não problema em cada uma.
 
     Esta função é somente leitura: nenhuma verificação altera o DataFrame.
     O tratamento (ETAPA 2) só começa depois que todo o diagnóstico termina.
@@ -763,12 +570,7 @@ def executar_diagnostico(nome: str, df: pd.DataFrame) -> None:
     verificar_estrutura(nome, df)
     verificar_valores_ausentes(nome, df)
     verificar_linhas_duplicadas(nome, df)
-    verificar_colunas_duplicadas(nome, df)
     verificar_tipos_incorretos(nome, df)
-    verificar_valores_inconsistentes(nome, df)
-    verificar_espacos_extras(nome, df)
-    verificar_capitalizacao(nome, df)
-    verificar_caracteres_especiais(nome, df)
     verificar_outliers(nome, df)
     verificar_distribuicao(nome, df)
     verificar_balanceamento_target(nome, df)
@@ -777,9 +579,6 @@ def executar_diagnostico(nome: str, df: pd.DataFrame) -> None:
     verificar_colunas_irrelevantes(nome, df)
     verificar_regras_especificas(nome, df)
     verificar_valores_impossiveis(nome, df)
-    verificar_datas(nome, df)
-    verificar_encoding(nome, df)
-    verificar_consistencia_geral(nome, df)
 
 
 # =============================================================================
