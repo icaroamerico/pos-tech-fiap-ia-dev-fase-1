@@ -713,27 +713,42 @@ def verificar_consistencia_geral(nome: str, df: pd.DataFrame) -> None:
         print("Nenhuma inconsistência geral adicional encontrada.")
 
 
+# ---------------------------------------------------------------------------
+# ETAPA 1 — Runner do diagnóstico completo
+# ---------------------------------------------------------------------------
+
+def executar_diagnostico(nome: str, df: pd.DataFrame) -> None:
+    """Executa as 20 verificações obrigatórias sobre ``df``, sempre, na
+    ordem do prompt, independente de haver ou não problema em cada uma.
+
+    Esta função é somente leitura: nenhuma verificação altera o DataFrame.
+    O tratamento (ETAPA 2) só começa depois que todo o diagnóstico termina.
+    """
+    print(f"\n{'#' * 70}\nDIAGNÓSTICO — {nome}\n{'#' * 70}")
+    verificar_estrutura(nome, df)
+    verificar_valores_ausentes(nome, df)
+    verificar_linhas_duplicadas(nome, df)
+    verificar_colunas_duplicadas(nome, df)
+    verificar_tipos_incorretos(nome, df)
+    verificar_valores_inconsistentes(nome, df)
+    verificar_espacos_extras(nome, df)
+    verificar_capitalizacao(nome, df)
+    verificar_caracteres_especiais(nome, df)
+    verificar_outliers(nome, df)
+    verificar_distribuicao(nome, df)
+    verificar_balanceamento_target(nome, df)
+    verificar_correlacao(nome, df)
+    verificar_variancia(nome, df)
+    verificar_colunas_irrelevantes(nome, df)
+    verificar_regras_especificas(nome, df)
+    verificar_valores_impossiveis(nome, df)
+    verificar_datas(nome, df)
+    verificar_encoding(nome, df)
+    verificar_consistencia_geral(nome, df)
+
+
 if __name__ == "__main__":
     dados = carregar_datasets()
     print(f"Quantidade de arquivos encontrados em base_dados/: {len(dados)}")
     for nome_arquivo, dataframe in dados.items():
-        verificar_estrutura(nome_arquivo, dataframe)
-        verificar_valores_ausentes(nome_arquivo, dataframe)
-        verificar_linhas_duplicadas(nome_arquivo, dataframe)
-        verificar_colunas_duplicadas(nome_arquivo, dataframe)
-        verificar_tipos_incorretos(nome_arquivo, dataframe)
-        verificar_valores_inconsistentes(nome_arquivo, dataframe)
-        verificar_espacos_extras(nome_arquivo, dataframe)
-        verificar_capitalizacao(nome_arquivo, dataframe)
-        verificar_caracteres_especiais(nome_arquivo, dataframe)
-        verificar_outliers(nome_arquivo, dataframe)
-        verificar_distribuicao(nome_arquivo, dataframe)
-        verificar_balanceamento_target(nome_arquivo, dataframe)
-        verificar_correlacao(nome_arquivo, dataframe)
-        verificar_variancia(nome_arquivo, dataframe)
-        verificar_colunas_irrelevantes(nome_arquivo, dataframe)
-        verificar_regras_especificas(nome_arquivo, dataframe)
-        verificar_valores_impossiveis(nome_arquivo, dataframe)
-        verificar_datas(nome_arquivo, dataframe)
-        verificar_encoding(nome_arquivo, dataframe)
-        verificar_consistencia_geral(nome_arquivo, dataframe)
+        executar_diagnostico(nome_arquivo, dataframe)
