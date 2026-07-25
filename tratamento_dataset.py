@@ -24,6 +24,10 @@ OUTPUT_DIR = BASE_DIR / "base_dados_tratada"
 # números. Os valores originais devem permanecer exatamente como estão."
 COLUNAS_PROTEGIDAS = {"Blood Group"}
 
+# Tokens de texto que representam "ausência de valor" mas que o pandas não
+# converte automaticamente para NaN ao ler csv/xlsx (prompt.md item 2).
+TOKENS_AUSENTES = {"", "-", "--", "na", "n/a", "null", "none", "nan"}
+
 
 # ---------------------------------------------------------------------------
 # Carregamento dos datasets
@@ -83,8 +87,56 @@ def verificar_estrutura(nome: str, df: pd.DataFrame) -> None:
     print(f"Memória utilizada: {memoria_bytes / 1024:.2f} KB")
 
 
+# ---------------------------------------------------------------------------
+# Verificação 2: Valores ausentes
+# ---------------------------------------------------------------------------
+
+def _mascara_ausentes_disfarcados(coluna: pd.Series) -> pd.Series:
+    """Identifica valores textuais que representam ausência de dado.
+
+    Cobre células vazias, espaços em branco e tokens como "-", "--", "NA",
+    "N/A", "null", "None" (maiúsculas/minúsculas variadas), que o pandas não
+    reconhece como NaN por padrão.
+    """
+    texto = coluna.astype(str).str.strip().str.lower()
+    return texto.isin(TOKENS_AUSENTES)
+
+
+def verificar_valores_ausentes(nome: str, df: pd.DataFrame) -> None:
+    """Verifica NaN reais e valores ausentes disfarçados em texto.
+
+    Mostra quantidade e percentual por coluna, conforme exigido no prompt.
+    """
+    print(f"\n=== [2] Valores ausentes — {nome} ===")
+    total_linhas = len(df)
+    nan_reais = df.isna().sum()
+
+    disfarcados = pd.Series(0, index=df.columns, dtype=int)
+    for coluna in df.select_dtypes(include="object").columns:
+        disfarcados[coluna] = int(_mascara_ausentes_disfarcados(df[coluna]).sum())
+
+    total_ausentes = nan_reais.add(disfarcados, fill_value=0)
+    percentual = (total_ausentes / total_linhas * 100).round(2)
+
+    resumo = pd.DataFrame(
+        {
+            "nan_reais": nan_reais,
+            "ausentes_disfarcados_em_texto": disfarcados,
+            "total_ausentes": total_ausentes,
+            "percentual (%)": percentual,
+        }
+    )
+    resumo = resumo[resumo["total_ausentes"] > 0]
+
+    if resumo.empty:
+        print("Nenhum valor ausente (real ou disfarçado) encontrado.")
+    else:
+        print(resumo)
+
+
 if __name__ == "__main__":
     dados = carregar_datasets()
     print(f"Quantidade de arquivos encontrados em base_dados/: {len(dados)}")
     for nome_arquivo, dataframe in dados.items():
         verificar_estrutura(nome_arquivo, dataframe)
+        verificar_valores_ausentes(nome_arquivo, dataframe)
