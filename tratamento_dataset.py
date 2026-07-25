@@ -134,9 +134,56 @@ def verificar_valores_ausentes(nome: str, df: pd.DataFrame) -> None:
         print(resumo)
 
 
+# ---------------------------------------------------------------------------
+# Verificação 3: Linhas duplicadas
+# ---------------------------------------------------------------------------
+
+# Nomes de coluna que costumam representar identificadores de registro,
+# usados apenas para uma checagem extra de duplicidade "por ID" (prompt.md
+# item 3: "duplicatas considerando possíveis IDs").
+CANDIDATOS_ID = {"sl. no", "patient file no."}
+
+
+def verificar_linhas_duplicadas(nome: str, df: pd.DataFrame) -> None:
+    """Verifica duplicidade de linhas completas e por possíveis IDs."""
+    print(f"\n=== [3] Linhas duplicadas — {nome} ===")
+    duplicadas_completas = int(df.duplicated().sum())
+    print(f"Linhas totalmente duplicadas: {duplicadas_completas}")
+
+    colunas_id = [c for c in df.columns if c.strip().lower() in CANDIDATOS_ID]
+    if colunas_id:
+        for coluna in colunas_id:
+            duplicadas_id = int(df[coluna].duplicated().sum())
+            print(f"Duplicidade em possível ID '{coluna}': {duplicadas_id}")
+    else:
+        print("Nenhuma coluna de possível ID identificada para esta checagem.")
+
+
+# ---------------------------------------------------------------------------
+# Verificação 4: Colunas duplicadas
+# ---------------------------------------------------------------------------
+
+def verificar_colunas_duplicadas(nome: str, df: pd.DataFrame) -> None:
+    """Detecta colunas com nomes repetidos ou conteúdo idêntico."""
+    print(f"\n=== [4] Colunas duplicadas — {nome} ===")
+
+    nomes_repetidos = df.columns[df.columns.duplicated()].tolist()
+    print(f"Nomes de coluna repetidos: {nomes_repetidos or 'nenhum'}")
+
+    colunas_conteudo_igual = []
+    colunas = list(df.columns)
+    for i, col_a in enumerate(colunas):
+        for col_b in colunas[i + 1:]:
+            if df[col_a].equals(df[col_b]):
+                colunas_conteudo_igual.append((col_a, col_b))
+    print(f"Colunas com conteúdo idêntico: {colunas_conteudo_igual or 'nenhuma'}")
+
+
 if __name__ == "__main__":
     dados = carregar_datasets()
     print(f"Quantidade de arquivos encontrados em base_dados/: {len(dados)}")
     for nome_arquivo, dataframe in dados.items():
         verificar_estrutura(nome_arquivo, dataframe)
         verificar_valores_ausentes(nome_arquivo, dataframe)
+        verificar_linhas_duplicadas(nome_arquivo, dataframe)
+        verificar_colunas_duplicadas(nome_arquivo, dataframe)
