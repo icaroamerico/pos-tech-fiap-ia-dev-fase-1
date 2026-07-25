@@ -11,6 +11,7 @@ Os datasets tratados são salvos em ``base_dados_tratada/`` preservando os
 nomes originais dos arquivos.
 """
 
+import re
 from pathlib import Path
 
 import numpy as np
@@ -545,6 +546,173 @@ def verificar_colunas_irrelevantes(nome: str, df: pd.DataFrame) -> None:
     print(f"Colunas 'Unnamed' quase vazias (<10% preenchido): {colunas_unnamed or 'nenhuma'}")
 
 
+# ---------------------------------------------------------------------------
+# Verificação 16: Regras específicas do dataset
+# ---------------------------------------------------------------------------
+
+_PADRAO_PRESSAO_COMBINADA = r"^\d{2,3}\s*/\s*\d{2,3}$"
+
+
+def verificar_regras_especificas(nome: str, df: pd.DataFrame) -> None:
+    """Verifica as regras específicas do dataset descritas na aba
+    'Instructions' do PCOS: unidades, Yes/No, Blood Group, Blood Pressure e
+    Beta-HCG (Case I / Case II).
+
+    Cada regra é condicional: só é aplicada de fato na ETAPA 2 se a coluna
+    existir e ainda estiver no formato "bruto"; caso já esteja no formato
+    esperado, é reportada como no-op.
+    """
+    print(f"\n=== [16] Regras específicas do dataset — {nome} ===")
+
+    # --- Unidades (ex.: Feet -> cm) ---
+    colunas_altura = [c for c in df.columns if "height" in c.strip().lower()]
+    colunas_pes = [c for c in df.columns if "feet" in c.strip().lower() or "(ft)" in c.strip().lower()]
+    if colunas_pes:
+        print(f"Conversão de unidade necessária (pés -> cm) em: {colunas_pes}")
+    elif colunas_altura:
+        print(f"Coluna de altura já em cm, sem conversão de unidade necessária: {colunas_altura}")
+    else:
+        print("Nenhuma coluna de altura/unidade encontrada.")
+
+    # --- Yes/No -> 0/1 ---
+    colunas_yn = [c for c in df.columns if "(y/n)" in c.strip().lower()]
+    if not colunas_yn:
+        print("Nenhuma coluna Yes/No (Y/N) encontrada.")
+    for coluna in colunas_yn:
+        if pd.api.types.is_numeric_dtype(df[coluna]):
+            valores_fora_do_padrao = set(df[coluna].dropna().unique()) - {0, 1}
+            if valores_fora_do_padrao:
+                print(f"Coluna '{coluna}': já é numérica, mas com valores fora de 0/1: {valores_fora_do_padrao}")
+            else:
+                print(f"Coluna '{coluna}': já convertida para 0/1 (no-op).")
+        else:
+            print(f"Coluna '{coluna}': ainda textual, precisará ser convertida para 0/1.")
+
+    # --- Blood Group (NÃO converter) ---
+    if "Blood Group" in df.columns:
+        print("Coluna 'Blood Group' presente — protegida, não será convertida (regra do dataset).")
+    else:
+        print("Coluna 'Blood Group' não encontrada neste arquivo.")
+
+    # --- Blood Pressure (separar sistólica/diastólica) ---
+    colunas_bp_separadas = [c for c in df.columns if "systolic" in c.strip().lower() or "diastolic" in c.strip().lower()]
+    colunas_bp_combinadas = []
+    for coluna in df.select_dtypes(include="object").columns:
+        valores = df[coluna].dropna().astype(str).str.strip()
+        if not valores.empty and valores.str.match(_PADRAO_PRESSAO_COMBINADA).mean() > 0.5:
+            colunas_bp_combinadas.append(coluna)
+    if colunas_bp_combinadas:
+        print(f"Blood Pressure combinada (ex.: '120/80') precisa ser separada em: {colunas_bp_combinadas}")
+    elif colunas_bp_separadas:
+        print(f"Blood Pressure já separada em Sistólica/Diastólica (no-op): {colunas_bp_separadas}")
+    else:
+        print("Nenhuma coluna de Blood Pressure encontrada.")
+
+    # --- Beta-HCG (Case I / Case II) ---
+    colunas_beta_hcg = [c for c in df.columns if "beta-hcg" in c.strip().lower().replace(" ", "")]
+    if colunas_beta_hcg:
+        print(f"Colunas Beta-HCG identificadas (Case I / Case II): {colunas_beta_hcg}")
+    else:
+        print("Nenhuma coluna Beta-HCG encontrada.")
+
+
+# ---------------------------------------------------------------------------
+# Verificação 17: Valores impossíveis
+# ---------------------------------------------------------------------------
+
+_PALAVRAS_CHAVE_NAO_NEGATIVAS = ("age", "idade", "height", "altura", "weight", "peso", "pressure", "bp ")
+
+
+def verificar_valores_impossiveis(nome: str, df: pd.DataFrame) -> None:
+    """Detecta valores impossíveis: idade/altura/peso/pressão negativos e
+    datas futuras."""
+    print(f"\n=== [17] Valores impossíveis — {nome} ===")
+    encontrou_problema = False
+
+    for coluna in df.select_dtypes(include=[np.number]).columns:
+        nome_normalizado = coluna.strip().lower()
+        if not any(palavra in nome_normalizado for palavra in _PALAVRAS_CHAVE_NAO_NEGATIVAS):
+            continue
+        qtd_negativos = int((df[coluna].dropna() < 0).sum())
+        if qtd_negativos:
+            print(f"Coluna '{coluna}': {qtd_negativos} valor(es) negativo(s) (impossível).")
+            encontrou_problema = True
+
+    hoje = pd.Timestamp.now().normalize()
+    for coluna in df.select_dtypes(include="datetime").columns:
+        qtd_futuras = int((df[coluna] > hoje).sum())
+        if qtd_futuras:
+            print(f"Coluna '{coluna}': {qtd_futuras} data(s) no futuro (impossível).")
+            encontrou_problema = True
+
+    if not encontrou_problema:
+        print("Nenhum valor impossível encontrado.")
+
+
+# ---------------------------------------------------------------------------
+# Verificação 18: Datas
+# ---------------------------------------------------------------------------
+
+def verificar_datas(nome: str, df: pd.DataFrame) -> None:
+    """Identifica colunas de data e reporta se o formato precisa ser
+    padronizado (datas ainda como texto)."""
+    print(f"\n=== [18] Datas — {nome} ===")
+    colunas_datetime = list(df.select_dtypes(include="datetime").columns)
+    colunas_data_texto = [
+        c
+        for c in df.select_dtypes(include="object").columns
+        if df[c].dropna().astype(str).str.strip().str.match(_PADRAO_DATA).mean() > 0.5
+    ]
+
+    if not colunas_datetime and not colunas_data_texto:
+        print("Nenhuma coluna de data identificada neste arquivo.")
+        return
+
+    print(f"Colunas já como datetime: {colunas_datetime or 'nenhuma'}")
+    print(f"Colunas de data armazenadas como texto (precisam padronização): {colunas_data_texto or 'nenhuma'}")
+
+
+# ---------------------------------------------------------------------------
+# Verificação 19: Encoding
+# ---------------------------------------------------------------------------
+
+def verificar_encoding(nome: str, df: pd.DataFrame) -> None:
+    """Verifica problemas de encoding tanto nos nomes das colunas quanto nos
+    valores de texto (ex.: leitura UTF-8 de arquivo salvo em Latin-1)."""
+    print(f"\n=== [19] Encoding — {nome} ===")
+    padrao_mojibake = r"[ÃÂ][\x80-\xBF]|�"
+
+    colunas_com_problema_no_nome = [c for c in df.columns if re.search(padrao_mojibake, c)]
+    print(f"Nomes de coluna com possível problema de encoding: {colunas_com_problema_no_nome or 'nenhum'}")
+
+    colunas_com_problema_no_valor = []
+    for coluna in _colunas_texto(df):
+        valores = df[coluna].dropna().astype(str)
+        if valores.str.contains(padrao_mojibake, regex=True).any():
+            colunas_com_problema_no_valor.append(coluna)
+    print(f"Colunas com valores com possível problema de encoding: {colunas_com_problema_no_valor or 'nenhuma'}")
+
+
+# ---------------------------------------------------------------------------
+# Verificação 20: Consistência geral
+# ---------------------------------------------------------------------------
+
+def verificar_consistencia_geral(nome: str, df: pd.DataFrame) -> None:
+    """Checagem-guarda-chuva para outras inconsistências relevantes para ML
+    que não se encaixam nos itens anteriores: nomes de coluna com espaços
+    extras/duplicados, e colunas Yes/No com valores fora de {0, 1}."""
+    print(f"\n=== [20] Consistência geral — {nome} ===")
+    encontrou_problema = False
+
+    nomes_com_espaco = [c for c in df.columns if c != c.strip() or "  " in c]
+    if nomes_com_espaco:
+        print(f"Nomes de coluna com espaços extras/duplicados: {nomes_com_espaco}")
+        encontrou_problema = True
+
+    if not encontrou_problema:
+        print("Nenhuma inconsistência geral adicional encontrada.")
+
+
 if __name__ == "__main__":
     dados = carregar_datasets()
     print(f"Quantidade de arquivos encontrados em base_dados/: {len(dados)}")
@@ -564,3 +732,8 @@ if __name__ == "__main__":
         verificar_correlacao(nome_arquivo, dataframe)
         verificar_variancia(nome_arquivo, dataframe)
         verificar_colunas_irrelevantes(nome_arquivo, dataframe)
+        verificar_regras_especificas(nome_arquivo, dataframe)
+        verificar_valores_impossiveis(nome_arquivo, dataframe)
+        verificar_datas(nome_arquivo, dataframe)
+        verificar_encoding(nome_arquivo, dataframe)
+        verificar_consistencia_geral(nome_arquivo, dataframe)
