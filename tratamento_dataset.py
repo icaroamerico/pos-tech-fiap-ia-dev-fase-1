@@ -460,6 +460,91 @@ def verificar_balanceamento_target(nome: str, df: pd.DataFrame) -> None:
         print(pd.DataFrame({"contagem": contagem, "percentual (%)": percentual}))
 
 
+# ---------------------------------------------------------------------------
+# Verificação 13: Correlação
+# ---------------------------------------------------------------------------
+
+def verificar_correlacao(nome: str, df: pd.DataFrame, limite: float = 0.8) -> None:
+    """Mostra a matriz de correlação das colunas numéricas relevantes e
+    destaca os pares com correlação absoluta acima de ``limite``.
+
+    Colunas como AMH/II beta-HCG (object por sujeira pontual) são
+    convertidas para numérico apenas para esta análise (via
+    ``pd.to_numeric(errors="coerce")``), sem alterar o DataFrame original.
+    """
+    print(f"\n=== [13] Correlação — {nome} ===")
+    colunas = _colunas_numericas_para_analise(df)
+    if len(colunas) < 2:
+        print("Colunas numéricas insuficientes para calcular correlação.")
+        return
+
+    numerico = df[colunas].apply(pd.to_numeric, errors="coerce")
+    matriz = numerico.corr()
+    print(matriz.round(2))
+
+    pares_altos = []
+    for i, col_a in enumerate(matriz.columns):
+        for col_b in matriz.columns[i + 1:]:
+            valor = matriz.loc[col_a, col_b]
+            if pd.notna(valor) and abs(valor) >= limite:
+                pares_altos.append((col_a, col_b, round(valor, 2)))
+
+    if pares_altos:
+        print(f"Pares com correlação absoluta >= {limite}: {pares_altos}")
+    else:
+        print(f"Nenhum par de colunas com correlação absoluta >= {limite}.")
+
+
+# ---------------------------------------------------------------------------
+# Verificação 14: Variância
+# ---------------------------------------------------------------------------
+
+def verificar_variancia(nome: str, df: pd.DataFrame) -> None:
+    """Detecta colunas constantes (variância zero) e colunas com baixíssima
+    variabilidade (mais de 99% dos valores concentrados em uma só
+    categoria)."""
+    print(f"\n=== [14] Variância — {nome} ===")
+    constantes = []
+    baixa_variabilidade = []
+
+    for coluna in df.columns:
+        serie = df[coluna].dropna()
+        if serie.empty:
+            continue
+        if serie.nunique() == 1:
+            constantes.append(coluna)
+            continue
+        proporcao_moda = serie.value_counts(normalize=True).iloc[0]
+        if proporcao_moda >= 0.99:
+            baixa_variabilidade.append((coluna, round(proporcao_moda * 100, 2)))
+
+    print(f"Colunas constantes: {constantes or 'nenhuma'}")
+    print(f"Colunas com baixa variabilidade (>=99% concentrado): {baixa_variabilidade or 'nenhuma'}")
+
+
+# ---------------------------------------------------------------------------
+# Verificação 15: Colunas irrelevantes
+# ---------------------------------------------------------------------------
+
+def verificar_colunas_irrelevantes(nome: str, df: pd.DataFrame) -> None:
+    """Identifica possíveis colunas irrelevantes: IDs/códigos, colunas
+    totalmente vazias e colunas geradas automaticamente pelo pandas
+    (``Unnamed: N``) sem conteúdo útil."""
+    print(f"\n=== [15] Colunas irrelevantes — {nome} ===")
+
+    colunas_id = [c for c in df.columns if c.strip().lower() in CANDIDATOS_ID]
+    colunas_vazias = [c for c in df.columns if df[c].isna().all()]
+    colunas_unnamed = [
+        c
+        for c in df.columns
+        if c.strip().lower().startswith("unnamed") and df[c].notna().mean() < 0.1
+    ]
+
+    print(f"Colunas de identificação (ID): {colunas_id or 'nenhuma'}")
+    print(f"Colunas totalmente vazias: {colunas_vazias or 'nenhuma'}")
+    print(f"Colunas 'Unnamed' quase vazias (<10% preenchido): {colunas_unnamed or 'nenhuma'}")
+
+
 if __name__ == "__main__":
     dados = carregar_datasets()
     print(f"Quantidade de arquivos encontrados em base_dados/: {len(dados)}")
@@ -476,3 +561,6 @@ if __name__ == "__main__":
         verificar_outliers(nome_arquivo, dataframe)
         verificar_distribuicao(nome_arquivo, dataframe)
         verificar_balanceamento_target(nome_arquivo, dataframe)
+        verificar_correlacao(nome_arquivo, dataframe)
+        verificar_variancia(nome_arquivo, dataframe)
+        verificar_colunas_irrelevantes(nome_arquivo, dataframe)
