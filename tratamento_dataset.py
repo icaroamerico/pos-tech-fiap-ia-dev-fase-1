@@ -233,6 +233,115 @@ def verificar_tipos_incorretos(nome: str, df: pd.DataFrame) -> None:
         print("Nenhum problema de tipo incorreto encontrado.")
 
 
+def _colunas_texto(df: pd.DataFrame) -> list:
+    """Colunas de texto elegíveis para as checagens 6-9 (exclui protegidas)."""
+    return [
+        c
+        for c in df.select_dtypes(include="object").columns
+        if c not in COLUNAS_PROTEGIDAS
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Verificação 6: Valores inconsistentes (categorias)
+# ---------------------------------------------------------------------------
+
+def verificar_valores_inconsistentes(nome: str, df: pd.DataFrame) -> None:
+    """Detecta categorias que representam o mesmo valor com grafias
+    diferentes (ex.: 'Sim'/'SIM'/'Yes'/'S', 'Não'/'NO'/'No'/'N'), agrupando
+    por forma normalizada (minúsculo e sem espaços nas bordas)."""
+    print(f"\n=== [6] Valores inconsistentes (categorias) — {nome} ===")
+    encontrou_problema = False
+
+    for coluna in _colunas_texto(df):
+        valores = df[coluna].dropna().astype(str)
+        normalizados = valores.str.strip().str.lower()
+        agrupado = pd.DataFrame({"original": valores, "normalizado": normalizados})
+        for _, grupo in agrupado.groupby("normalizado"):
+            variantes = grupo["original"].unique()
+            if len(variantes) > 1:
+                print(f"Coluna '{coluna}': variantes para o mesmo valor -> {list(variantes)}")
+                encontrou_problema = True
+
+    if not encontrou_problema:
+        print("Nenhuma inconsistência de categoria encontrada.")
+
+
+# ---------------------------------------------------------------------------
+# Verificação 7: Espaços extras
+# ---------------------------------------------------------------------------
+
+def verificar_espacos_extras(nome: str, df: pd.DataFrame) -> None:
+    """Detecta valores de texto com espaços extras no início/fim/meio."""
+    print(f"\n=== [7] Espaços extras — {nome} ===")
+    encontrou_problema = False
+
+    for coluna in _colunas_texto(df):
+        valores = df[coluna].dropna().astype(str)
+        com_espaco_borda = (valores != valores.str.strip()).sum()
+        com_espaco_duplo = valores.str.contains(r"  +", regex=True).sum()
+        if com_espaco_borda or com_espaco_duplo:
+            print(
+                f"Coluna '{coluna}': {com_espaco_borda} valor(es) com espaço "
+                f"nas bordas, {com_espaco_duplo} valor(es) com espaços duplos."
+            )
+            encontrou_problema = True
+
+    if not encontrou_problema:
+        print("Nenhum espaço extra encontrado.")
+
+
+# ---------------------------------------------------------------------------
+# Verificação 8: Capitalização
+# ---------------------------------------------------------------------------
+
+def verificar_capitalizacao(nome: str, df: pd.DataFrame) -> None:
+    """Detecta o mesmo valor textual escrito com capitalização diferente
+    (ex.: 'joao'/'JOAO'/'Joao'/'João')."""
+    print(f"\n=== [8] Capitalização — {nome} ===")
+    encontrou_problema = False
+
+    for coluna in _colunas_texto(df):
+        valores = df[coluna].dropna().astype(str).str.strip()
+        agrupado = pd.DataFrame({"original": valores, "chave": valores.str.lower()})
+        for _, grupo in agrupado.groupby("chave"):
+            capitalizacoes = grupo["original"].unique()
+            if len(capitalizacoes) > 1:
+                print(f"Coluna '{coluna}': capitalizações distintas -> {list(capitalizacoes)}")
+                encontrou_problema = True
+
+    if not encontrou_problema:
+        print("Nenhuma inconsistência de capitalização encontrada.")
+
+
+# ---------------------------------------------------------------------------
+# Verificação 9: Caracteres especiais / encoding
+# ---------------------------------------------------------------------------
+
+def verificar_caracteres_especiais(nome: str, df: pd.DataFrame) -> None:
+    """Detecta caracteres não imprimíveis ou indícios de problema de
+    encoding (ex.: sequências mojibake típicas de UTF-8 lido como Latin-1)."""
+    print(f"\n=== [9] Caracteres especiais — {nome} ===")
+    encontrou_problema = False
+    padrao_mojibake = r"[ÃÂ][\x80-\xBF]|�"
+    padrao_nao_imprimivel = r"[\x00-\x08\x0b\x0c\x0e-\x1f]"
+
+    for coluna in _colunas_texto(df):
+        valores = df[coluna].dropna().astype(str)
+        qtd_mojibake = valores.str.contains(padrao_mojibake, regex=True).sum()
+        qtd_nao_imprimivel = valores.str.contains(padrao_nao_imprimivel, regex=True).sum()
+        if qtd_mojibake or qtd_nao_imprimivel:
+            print(
+                f"Coluna '{coluna}': {qtd_mojibake} valor(es) com possível "
+                f"mojibake, {qtd_nao_imprimivel} valor(es) com caractere não "
+                f"imprimível."
+            )
+            encontrou_problema = True
+
+    if not encontrou_problema:
+        print("Nenhum caractere especial/problema de encoding encontrado.")
+
+
 if __name__ == "__main__":
     dados = carregar_datasets()
     print(f"Quantidade de arquivos encontrados em base_dados/: {len(dados)}")
@@ -242,3 +351,7 @@ if __name__ == "__main__":
         verificar_linhas_duplicadas(nome_arquivo, dataframe)
         verificar_colunas_duplicadas(nome_arquivo, dataframe)
         verificar_tipos_incorretos(nome_arquivo, dataframe)
+        verificar_valores_inconsistentes(nome_arquivo, dataframe)
+        verificar_espacos_extras(nome_arquivo, dataframe)
+        verificar_capitalizacao(nome_arquivo, dataframe)
+        verificar_caracteres_especiais(nome_arquivo, dataframe)
