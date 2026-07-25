@@ -179,6 +179,60 @@ def verificar_colunas_duplicadas(nome: str, df: pd.DataFrame) -> None:
     print(f"Colunas com conteúdo idêntico: {colunas_conteudo_igual or 'nenhuma'}")
 
 
+# ---------------------------------------------------------------------------
+# Verificação 5: Tipos incorretos
+# ---------------------------------------------------------------------------
+
+# Padrões simples de data usados apenas para detecção (não faz parsing real).
+_PADRAO_DATA = r"^\d{1,4}[-/]\d{1,2}[-/]\d{1,4}$"
+
+
+def verificar_tipos_incorretos(nome: str, df: pd.DataFrame) -> None:
+    """Detecta números armazenados como texto, datas como texto e colunas
+    com mistura de tipos (texto e número na mesma coluna).
+
+    Achado real neste dataset: as colunas 'AMH(ng/mL)' e
+    'II    beta-HCG(mIU/mL)' vêm com dtype ``object`` por causa de sujeira
+    pontual (ex.: valor "a" e "1.99." em vez de número), quando deveriam ser
+    inteiramente numéricas.
+    """
+    print(f"\n=== [5] Tipos incorretos — {nome} ===")
+    encontrou_problema = False
+
+    for coluna in df.select_dtypes(include="object").columns:
+        if coluna in COLUNAS_PROTEGIDAS:
+            continue  # Blood Group é texto por definição do dataset.
+
+        serie_texto = df[coluna].dropna().astype(str).str.strip()
+        if serie_texto.empty:
+            continue
+
+        convertido_numero = pd.to_numeric(serie_texto, errors="coerce")
+        percentual_numerico = convertido_numero.notna().mean() * 100
+
+        if 0 < percentual_numerico < 100:
+            qtd_nao_numerico = int(convertido_numero.isna().sum())
+            print(
+                f"Coluna '{coluna}': número armazenado como texto "
+                f"({percentual_numerico:.1f}% dos valores são numéricos, "
+                f"{qtd_nao_numerico} valor(es) não numérico(s))."
+            )
+            encontrou_problema = True
+
+        percentual_data = serie_texto.str.match(_PADRAO_DATA).mean() * 100
+        if percentual_data > 50:
+            print(f"Coluna '{coluna}': possível data armazenada como texto.")
+            encontrou_problema = True
+
+        tipos_distintos = serie_texto.map(type).nunique()
+        if tipos_distintos > 1:
+            print(f"Coluna '{coluna}': mistura de tipos de dado na mesma coluna.")
+            encontrou_problema = True
+
+    if not encontrou_problema:
+        print("Nenhum problema de tipo incorreto encontrado.")
+
+
 if __name__ == "__main__":
     dados = carregar_datasets()
     print(f"Quantidade de arquivos encontrados em base_dados/: {len(dados)}")
@@ -187,3 +241,4 @@ if __name__ == "__main__":
         verificar_valores_ausentes(nome_arquivo, dataframe)
         verificar_linhas_duplicadas(nome_arquivo, dataframe)
         verificar_colunas_duplicadas(nome_arquivo, dataframe)
+        verificar_tipos_incorretos(nome_arquivo, dataframe)
