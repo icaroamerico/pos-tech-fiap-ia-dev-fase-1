@@ -1113,8 +1113,49 @@ def executar_tratamento(nome: str, df: pd.DataFrame) -> tuple[pd.DataFrame, dict
     return df, resumo
 
 
+def imprimir_resumo(nome: str, resumo: dict) -> None:
+    """Imprime o resumo final do tratamento no formato pedido no prompt."""
+    print(f"\nResumo — {nome}")
+    print(f"Linhas removidas: {resumo['linhas_removidas']}")
+    print(f"Duplicados removidos: {resumo['duplicados_removidos']}")
+    print(f"Valores ausentes preenchidos: {resumo['valores_ausentes_preenchidos']}")
+    print(f"Outliers tratados: {resumo['outliers_tratados']}")
+    print(f"Datas convertidas: {resumo['datas_convertidas']}")
+    print(f"Blood Pressure separada: {resumo['blood_pressure_separada'] or 'não aplicável (já estava separada ou não existe)'}")
+    print(f"Yes/No convertidos: {resumo['yes_no_convertidos'] or 'não aplicável (já estavam em 0/1)'}")
+    print(f"Unidades convertidas: {resumo['unidades_convertidas'] or 'não aplicável (já estava na unidade esperada)'}")
+    print(f"Colunas removidas (constantes/irrelevantes): {resumo['colunas_removidas'] or 'nenhuma'}")
+
+
+def salvar_dataset(nome: str, df: pd.DataFrame, pasta_saida: Path = OUTPUT_DIR) -> None:
+    """Salva ``df`` em ``pasta_saida``, preservando o nome original do
+    arquivo (csv salvo como csv, xlsx salvo como xlsx)."""
+    pasta_saida.mkdir(parents=True, exist_ok=True)
+    caminho_saida = pasta_saida / nome
+    sufixo = caminho_saida.suffix.lower()
+
+    if sufixo == ".csv":
+        df.to_csv(caminho_saida, index=False)
+    elif sufixo in (".xlsx", ".xls"):
+        df.to_excel(caminho_saida, index=False)
+    else:
+        raise ValueError(f"Extensão não suportada para salvar: {sufixo}")
+
+    print(f"Dataset tratado salvo em: {caminho_saida}")
+
+
 if __name__ == "__main__":
     dados = carregar_datasets()
     print(f"Quantidade de arquivos encontrados em base_dados/: {len(dados)}")
+
+    # ETAPA 1 — diagnóstico completo de todos os arquivos, sempre executado
+    # e independente da ETAPA 2 (nenhum dado é alterado aqui).
     for nome_arquivo, dataframe in dados.items():
         executar_diagnostico(nome_arquivo, dataframe)
+
+    # ETAPA 2 — tratamento e exportação, um arquivo por vez.
+    for nome_arquivo, dataframe in dados.items():
+        print(f"\n{'#' * 70}\nTRATAMENTO — {nome_arquivo}\n{'#' * 70}")
+        dataframe_tratado, resumo = executar_tratamento(nome_arquivo, dataframe.copy())
+        imprimir_resumo(nome_arquivo, resumo)
+        salvar_dataset(nome_arquivo, dataframe_tratado)
