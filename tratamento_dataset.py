@@ -13,6 +13,7 @@ nomes originais dos arquivos.
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -342,6 +343,123 @@ def verificar_caracteres_especiais(nome: str, df: pd.DataFrame) -> None:
         print("Nenhum caractere especial/problema de encoding encontrado.")
 
 
+def _colunas_numericas_para_analise(df: pd.DataFrame) -> list:
+    """Colunas numéricas relevantes para outliers/distribuição/correlação.
+
+    Exclui a coluna protegida (Blood Group é um código categórico, não uma
+    medida contínua) e colunas de identificação (Sl. No / Patient File No.),
+    que não fazem sentido em análises estatísticas desse tipo.
+    """
+    resultado = []
+    for coluna in df.select_dtypes(include=[np.number]).columns:
+        nome_normalizado = coluna.strip().lower()
+        if coluna in COLUNAS_PROTEGIDAS:
+            continue
+        if nome_normalizado in CANDIDATOS_ID:
+            continue
+        resultado.append(coluna)
+    return resultado
+
+
+# ---------------------------------------------------------------------------
+# Verificação 10: Outliers (IQR, Z-score, Boxplot)
+# ---------------------------------------------------------------------------
+
+def verificar_outliers(nome: str, df: pd.DataFrame) -> None:
+    """Conta outliers por IQR e Z-score, e imprime o resumo de quartis que
+    fundamenta um boxplot (Q1, mediana, Q3, bigodes), sem remover nada.
+
+    Apenas relata a quantidade encontrada; a decisão de tratar (e como) fica
+    para a ETAPA 2, com justificativa.
+    """
+    print(f"\n=== [10] Outliers — {nome} ===")
+    colunas = _colunas_numericas_para_analise(df)
+    linhas = []
+
+    for coluna in colunas:
+        serie = df[coluna].dropna()
+        if serie.empty or serie.nunique() <= 1:
+            continue
+
+        q1, q3 = serie.quantile(0.25), serie.quantile(0.75)
+        iqr = q3 - q1
+        limite_inferior, limite_superior = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+        outliers_iqr = int(((serie < limite_inferior) | (serie > limite_superior)).sum())
+
+        desvio = serie.std(ddof=0)
+        if desvio > 0:
+            z_scores = (serie - serie.mean()) / desvio
+            outliers_zscore = int((z_scores.abs() > 3).sum())
+        else:
+            outliers_zscore = 0
+
+        linhas.append(
+            {
+                "coluna": coluna,
+                "outliers_iqr": outliers_iqr,
+                "outliers_zscore": outliers_zscore,
+                "boxplot_q1": round(q1, 2),
+                "boxplot_mediana": round(serie.median(), 2),
+                "boxplot_q3": round(q3, 2),
+                "boxplot_bigode_inf": round(limite_inferior, 2),
+                "boxplot_bigode_sup": round(limite_superior, 2),
+            }
+        )
+
+    resumo = pd.DataFrame(linhas)
+    com_outlier = resumo[(resumo["outliers_iqr"] > 0) | (resumo["outliers_zscore"] > 0)]
+    if com_outlier.empty:
+        print("Nenhum outlier encontrado (IQR e Z-score) nas colunas numéricas analisadas.")
+    else:
+        print(com_outlier.to_string(index=False))
+
+
+# ---------------------------------------------------------------------------
+# Verificação 11: Distribuição das variáveis
+# ---------------------------------------------------------------------------
+
+def verificar_distribuicao(nome: str, df: pd.DataFrame) -> None:
+    """Imprime a distribuição das variáveis: frequência para colunas de
+    baixa cardinalidade (categóricas/binárias) e estatísticas de forma
+    (assimetria) para colunas contínuas, como substituto textual simples de
+    histograma."""
+    print(f"\n=== [11] Distribuição das variáveis — {nome} ===")
+    colunas = _colunas_numericas_para_analise(df)
+
+    for coluna in colunas:
+        serie = df[coluna].dropna()
+        if serie.empty:
+            continue
+        if serie.nunique() <= 10:
+            frequencias = serie.value_counts(normalize=True).sort_index() * 100
+            print(f"Coluna '{coluna}' (frequência %):")
+            print(frequencias.round(2))
+        else:
+            assimetria = serie.skew()
+            print(f"Coluna '{coluna}': assimetria (skew) = {assimetria:.2f}")
+
+
+# ---------------------------------------------------------------------------
+# Verificação 12: Balanceamento da variável alvo
+# ---------------------------------------------------------------------------
+
+def verificar_balanceamento_target(nome: str, df: pd.DataFrame) -> None:
+    """Verifica o balanceamento da variável alvo (ex.: 'PCOS (Y/N)'), quando
+    existir no dataset."""
+    print(f"\n=== [12] Balanceamento da variável alvo — {nome} ===")
+    colunas_alvo = [c for c in df.columns if "pcos" in c.strip().lower()]
+
+    if not colunas_alvo:
+        print("Nenhuma variável alvo identificada neste arquivo.")
+        return
+
+    for coluna in colunas_alvo:
+        contagem = df[coluna].value_counts()
+        percentual = (df[coluna].value_counts(normalize=True) * 100).round(2)
+        print(f"Coluna alvo '{coluna}':")
+        print(pd.DataFrame({"contagem": contagem, "percentual (%)": percentual}))
+
+
 if __name__ == "__main__":
     dados = carregar_datasets()
     print(f"Quantidade de arquivos encontrados em base_dados/: {len(dados)}")
@@ -355,3 +473,6 @@ if __name__ == "__main__":
         verificar_espacos_extras(nome_arquivo, dataframe)
         verificar_capitalizacao(nome_arquivo, dataframe)
         verificar_caracteres_especiais(nome_arquivo, dataframe)
+        verificar_outliers(nome_arquivo, dataframe)
+        verificar_distribuicao(nome_arquivo, dataframe)
+        verificar_balanceamento_target(nome_arquivo, dataframe)
