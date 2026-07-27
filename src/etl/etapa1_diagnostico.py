@@ -1,7 +1,6 @@
 """ETAPA 1 — Diagnóstico dos datasets em ``base_dados/``.
 
-Baseado nas regras descritas em ``.claude/prompt.md``: reproduz
-automaticamente todas as verificações de qualidade de dados, sempre
+Reproduz automaticamente todas as verificações de qualidade de dados, sempre
 executadas, independente do resultado. Esta etapa é somente leitura: nenhuma
 verificação altera os DataFrames. O tratamento (ETAPA 2, em
 ``src/etl/etapa2_tratamento.py``) só começa depois que todo o diagnóstico
