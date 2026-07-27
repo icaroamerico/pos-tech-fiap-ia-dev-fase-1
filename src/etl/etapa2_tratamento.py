@@ -272,8 +272,7 @@ def tratar_outliers(df: pd.DataFrame, resumo: dict) -> pd.DataFrame:
     IDs). Os valores fora do limite são "grudados" no limite mais próximo.
     Justificativa: capping preserva todas as linhas (diferente de remover),
     reduzindo a influência de extremos sem descartar informação; a remoção
-    automática sem justificativa individual foi explicitamente evitada,
-    conforme o prompt.
+    automática sem justificativa individual foi explicitamente evitada.
     """
     for coluna in _colunas_numericas_para_analise(df):
         serie = df[coluna].dropna()
@@ -377,7 +376,7 @@ def executar_tratamento(nome: str, df: pd.DataFrame) -> tuple[pd.DataFrame, dict
 
 
 def imprimir_resumo(nome: str, resumo: dict) -> None:
-    """Imprime o resumo final do tratamento no formato pedido no prompt."""
+    """Imprime o resumo final do tratamento."""
     print(f"\nResumo — {nome}")
     print(f"Linhas removidas: {resumo['linhas_removidas']}")
     print(f"Duplicados removidos: {resumo['duplicados_removidos']}")
