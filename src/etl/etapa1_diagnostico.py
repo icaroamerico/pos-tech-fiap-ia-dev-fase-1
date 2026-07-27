@@ -18,13 +18,43 @@ INPUT_DIR = BASE_DIR / "base_dados"
 OUTPUT_DIR = BASE_DIR / "base_dados_tratada"
 
 # Coluna(s) que nunca podem ser alteradas por nenhuma verificação/tratamento
-# genérico. Regra do dataset (prompt.md): "NÃO converter Blood Group para
-# números. Os valores originais devem permanecer exatamente como estão."
+# genérico. Regra do dataset: "NÃO converter Blood Group para números. Os
+# valores originais devem permanecer exatamente como estão."
 COLUNAS_PROTEGIDAS = {"Blood Group"}
 
 # Tokens de texto que representam "ausência de valor" mas que o pandas não
-# converte automaticamente para NaN ao ler csv/xlsx (prompt.md item 2).
+# converte automaticamente para NaN ao ler csv/xlsx.
 TOKENS_AUSENTES = {"", "-", "--", "na", "n/a", "null", "none", "nan"}
+
+# Cabeçalho de referência de cada arquivo conhecido em base_dados/ (nomes
+# exatos, incluindo espaços extras originais). Usado só para conferência em
+# verificar_estrutura: um arquivo com esse mesmo nome deve sempre chegar com
+# este cabeçalho; qualquer diferença é sinal de que a planilha/CSV de origem
+# mudou. Arquivos que não estiverem neste dicionário não são comparados (as
+# demais checagens continuam funcionando por detecção de padrão no nome da
+# coluna, independente de cadastro aqui).
+COLUNAS_ESPERADAS: dict[str, list[str]] = {
+    "PCOS_data_without_infertility.xlsx": [
+        "Sl. No", "Patient File No.", "PCOS (Y/N)", " Age (yrs)",
+        "Weight (Kg)", "Height(Cm) ", "BMI", "Blood Group",
+        "Pulse rate(bpm) ", "RR (breaths/min)", "Hb(g/dl)", "Cycle(R/I)",
+        "Cycle length(days)", "Marraige Status (Yrs)", "Pregnant(Y/N)",
+        "No. of aborptions", "  I   beta-HCG(mIU/mL)",
+        "II    beta-HCG(mIU/mL)", "FSH(mIU/mL)", "LH(mIU/mL)", "FSH/LH",
+        "Hip(inch)", "Waist(inch)", "Waist:Hip Ratio", "TSH (mIU/L)",
+        "AMH(ng/mL)", "PRL(ng/mL)", "Vit D3 (ng/mL)", "PRG(ng/mL)",
+        "RBS(mg/dl)", "Weight gain(Y/N)", "hair growth(Y/N)",
+        "Skin darkening (Y/N)", "Hair loss(Y/N)", "Pimples(Y/N)",
+        "Fast food (Y/N)", "Reg.Exercise(Y/N)", "BP _Systolic (mmHg)",
+        "BP _Diastolic (mmHg)", "Follicle No. (L)", "Follicle No. (R)",
+        "Avg. F size (L) (mm)", "Avg. F size (R) (mm)", "Endometrium (mm)",
+        "Unnamed: 44",
+    ],
+    "PCOS_infertility.csv": [
+        "Sl. No", "Patient File No.", "PCOS (Y/N)", "  I   beta-HCG(mIU/mL)",
+        "II    beta-HCG(mIU/mL)", "AMH(ng/mL)",
+    ],
+}
 
 
 # ---------------------------------------------------------------------------
@@ -73,7 +103,8 @@ def _carregar_aba_de_dados(caminho: Path) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def verificar_estrutura(nome: str, df: pd.DataFrame) -> None:
-    """Verifica quantidade de linhas/colunas, nomes, tipos e memória usada."""
+    """Verifica quantidade de linhas/colunas, nomes, tipos, memória usada e
+    conformidade do cabeçalho com o esperado para este arquivo."""
     print(f"\n=== [1] Estrutura — {nome} ===")
     print(f"Quantidade de linhas: {df.shape[0]}")
     print(f"Quantidade de colunas: {df.shape[1]}")
@@ -82,6 +113,29 @@ def verificar_estrutura(nome: str, df: pd.DataFrame) -> None:
     print(df.dtypes)
     memoria_bytes = df.memory_usage(deep=True).sum()
     print(f"Memória utilizada: {memoria_bytes / 1024:.2f} KB")
+
+    esperadas = COLUNAS_ESPERADAS.get(nome)
+    if esperadas is None:
+        print(
+            "Cabeçalho: nenhum cabeçalho de referência cadastrado para "
+            f"'{nome}' — checagem de conformidade pulada."
+        )
+        return
+
+    colunas_atuais = list(df.columns)
+    faltando = [c for c in esperadas if c not in colunas_atuais]
+    novas = [c for c in colunas_atuais if c not in esperadas]
+
+    if not faltando and not novas and colunas_atuais == esperadas:
+        print("Cabeçalho: idêntico ao esperado (nomes e ordem).")
+        return
+
+    if not faltando and not novas:
+        print("Cabeçalho: mesmas colunas do esperado, porém em ordem diferente.")
+    if faltando:
+        print(f"Cabeçalho: coluna(s) esperada(s) ausente(s): {faltando}")
+    if novas:
+        print(f"Cabeçalho: coluna(s) inesperada(s)/nova(s): {novas}")
 
 
 # ---------------------------------------------------------------------------
@@ -102,7 +156,7 @@ def _mascara_ausentes_disfarcados(coluna: pd.Series) -> pd.Series:
 def verificar_valores_ausentes(nome: str, df: pd.DataFrame) -> None:
     """Verifica NaN reais e valores ausentes disfarçados em texto.
 
-    Mostra quantidade e percentual por coluna, conforme exigido no prompt.
+    Mostra quantidade e percentual por coluna.
     """
     print(f"\n=== [2] Valores ausentes — {nome} ===")
     total_linhas = len(df)
@@ -136,8 +190,8 @@ def verificar_valores_ausentes(nome: str, df: pd.DataFrame) -> None:
 # ---------------------------------------------------------------------------
 
 # Nomes de coluna que costumam representar identificadores de registro,
-# usados apenas para uma checagem extra de duplicidade "por ID" (prompt.md
-# item 3: "duplicatas considerando possíveis IDs").
+# usados apenas para uma checagem extra de duplicidade "por ID"
+# ("duplicatas considerando possíveis IDs").
 CANDIDATOS_ID = {"sl. no", "patient file no."}
 
 
@@ -556,8 +610,8 @@ def verificar_valores_impossiveis(nome: str, df: pd.DataFrame) -> None:
 # ---------------------------------------------------------------------------
 
 def executar_diagnostico(nome: str, df: pd.DataFrame) -> None:
-    """Executa as 12 verificações mantidas sobre ``df``, sempre, na ordem do
-    prompt, independente de haver ou não problema em cada uma.
+    """Executa as 12 verificações mantidas sobre ``df``, sempre, na ordem
+    original, independente de haver ou não problema em cada uma.
 
     Esta função é somente leitura: nenhuma verificação altera o DataFrame.
     O tratamento (ETAPA 2) só começa depois que todo o diagnóstico termina.
