@@ -4,7 +4,8 @@ Baseado nas regras descritas em ``.claude/prompt.md``: reproduz
 automaticamente todas as verificações de qualidade de dados, sempre
 executadas, independente do resultado. Esta etapa é somente leitura: nenhuma
 verificação altera os DataFrames. O tratamento (ETAPA 2, em
-``etapa2_tratamento.py``) só começa depois que todo o diagnóstico termina.
+``src/etl/etapa2_tratamento.py``) só começa depois que todo o diagnóstico
+termina.
 """
 
 from pathlib import Path
@@ -12,7 +13,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-BASE_DIR = Path(__file__).resolve().parent
+# src/etl/etapa1_diagnostico.py -> etl -> src -> raiz do projeto.
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 INPUT_DIR = BASE_DIR / "base_dados"
 OUTPUT_DIR = BASE_DIR / "base_dados_tratada"
 
