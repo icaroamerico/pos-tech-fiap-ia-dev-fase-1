@@ -1,5 +1,7 @@
 pandas==2.2.2
 numpy
 jupyterlab
-matplotlib
-seaborn
+matplotlib>=3.9
+seaborn>=0.13
+openpyxl
+scipy>=1.11
