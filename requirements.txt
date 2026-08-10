@@ -1,7 +1,8 @@
 pandas==2.2.2
 numpy
 jupyterlab
-matplotlib
-seaborn
 scikit-learn==1.5.2
 openpyxl
+matplotlib>=3.9
+seaborn>=0.13
+scipy>=1.11
