@@ -232,3 +232,6 @@ CLAUDE.md
 .github/copilot-instructions.md
 .copilot/
 pasta_ignora/
+
+# Resultados de treinamento gerados automaticamente
+reports/
