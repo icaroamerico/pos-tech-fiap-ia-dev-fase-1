@@ -37,7 +37,7 @@ from sklearn.metrics import (
 
 # Raiz do repositório: src/modelagem/treinamento.py -> src -> raiz
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-INPUT_PATH = BASE_DIR / "base_dados_tratada" / "PCOS_data_without_infertility.xlsx"
+INPUT_PATH = BASE_DIR / "base_dados_tratada" / "PCOS_unificado.csv"
 REPORTS_DIR = BASE_DIR / "reports"
 
 # Variável que queremos prever: presença (1) ou ausência (0) de SOP
@@ -55,8 +55,8 @@ SEED = 42
 # ---------------------------------------------------------------------------
 
 def carregar_dados(caminho: Path = INPUT_PATH) -> pd.DataFrame:
-    """Lê a base tratada e remove colunas que não são features."""
-    df = pd.read_excel(caminho)
+    """Lê a base tratada (CSV unificado) e remove colunas que não são features."""
+    df = pd.read_csv(caminho)
     print(f"Base carregada: {df.shape[0]} linhas x {df.shape[1]} colunas")
     return df
 

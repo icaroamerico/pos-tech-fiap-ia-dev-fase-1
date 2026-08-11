@@ -6,18 +6,17 @@ Tech Challenge de Machine Learning — Classificação de Riscos à Saúde da Mu
 
 ```text
 .
-├── base_dados/                # Dados brutos
-├── base_dados_tratada/        # Dados limpos gerados pelo ETL
-├── reports/                   # Métricas e relatórios gerados automaticamente
+├── base_dados/                # Dados brutos (.xlsx e .csv)
+├── base_dados_tratada/        # Dados limpos gerados pelo notebook
+├── reports/                   # Métricas geradas automaticamente (não versionado)
+├── notebooks/
+│   └── pipeline_pcos.ipynb    # ETL completo + EDA + treinamento e avaliação
 ├── src/
-│   ├── etl/
-│   │   ├── etapa1_diagnostico.py   # Verificações de qualidade de dados
-│   │   └── etapa2_tratamento.py    # Limpeza, conversão e imputação
 │   ├── modelagem/
 │   │   ├── __init__.py
-│   │   └── treinamento.py          # Split, treino e avaliação de modelos
-│   ├── main.py                     # Executa ETL (ETAPA 1 + ETAPA 2)
-│   └── run_ml.py                   # Executa ETAPA 3 (treinamento/aval.)
+│   │   └── treinamento.py     # Script de treinamento e avaliação
+│   ├── main.py                # Mantido para compatibilidade; não executável sem src/etl
+│   └── run_ml.py              # Ponto de entrada do treinamento via terminal
 ├── requirements.txt
 ├── Dockerfile
 └── docker-compose.yml
@@ -41,77 +40,62 @@ Dependências principais:
 
 ## Execução passo a passo
 
-### 1. Diagnóstico e tratamento (ETAPAS 1 e 2)
+### Opção A — via notebook (recomendada)
+
+O notebook `notebooks/pipeline_pcos.ipynb` contém o pipeline completo:
+
+1. **ETAPA 1 — Diagnóstico:** 13 verificações de qualidade (somente leitura).
+2. **ETAPA 1.B — Consolidação:** junção dos arquivos pela chave `Sl. No`.
+3. **ETAPA 1.C — EDA:** exploração e análise dos dados.
+4. **ETAPA 2 — Tratamento:** 14 correções e exportação para `base_dados_tratada/PCOS_unificado.csv`.
+5. **ETAPA 3 — Modelagem:** split 80/20, treino e avaliação de cinco classificadores.
+
+Abra com:
 
 ```bash
-python -m src.main
+python -m jupyter lab notebooks/pipeline_pcos.ipynb
 ```
 
-Gera os arquivos limpos em `base_dados_tratada/`.
+Execute as células em ordem.
 
-### 2. Treinamento e avaliação (ETAPA 3)
+### Opção B — via script
+
+Se a base tratada já foi gerada (`base_dados_tratada/PCOS_unificado.csv`), rode diretamente:
 
 ```bash
 python -m src.run_ml
 ```
 
-O script:
+Ou:
 
-1. Carrega `base_dados_tratada/PCOS_data_without_infertility.xlsx`.
-2. Separa 80% dos dados para treino e 20% para teste (`train_test_split` com `stratify`).
-3. Treina cinco classificadores:
-   - Regressão Logística
-   - Árvore de Decisão
-   - KNN (k=5)
-   - Random Forest
-   - SVM (RBF)
-4. Avalia cada um com acurácia, precisão, recall, F1, AUC-ROC e matriz de confusão.
-5. Salva os resultados em `reports/metricas_modelos.txt` e `.json`.
+```bash
+python src/run_ml.py
+```
+
+O script `src/modelagem/treinamento.py` carrega o CSV unificado, separa 80% treino / 20% teste (`stratify=y`), treina e avalia:
+
+- Regressão Logística
+- Árvore de Decisão
+- KNN (k=5)
+- Random Forest
+- SVM (RBF)
+
+As métricas são salvas em `reports/metricas_modelos.txt` e `.json`.
 
 ## Resultados esperados
 
-Exemplo de saída em `reports/metricas_modelos.txt`:
+Exemplo de saída (`reports/metricas_modelos.txt`):
 
 ```text
 Modelo: Regressão Logística
-  Acurácia : 0.8624
-  Precisão : 0.7561
+  Acurácia : 0.8532
+  Precisão : 0.7381
   Recall   : 0.8611
-  F1-Score : 0.8052
-  AUC-ROC  : 0.9288
-  Matriz de confusão: [[63, 10], [5, 31]]
+  F1-Score : 0.7949
+  AUC-ROC  : 0.9277
+  Matriz de confusão: [[62, 11], [5, 31]]
 ```
 
 ## Variável alvo
 
 - `PCOS (Y/N)`: `1` indica presença de SOP, `0` indica ausência.
-  Pipeline de diagnóstico e tratamento do dataset PCOS (síndrome dos ovários policísticos).
-
-## Estrutura
-
-```
-base_dados/                       arquivos de entrada (.xlsx e .csv)
-base_dados_tratada/               saída: PCOS_unificado.csv (541 x 49)
-notebooks/pipeline_pcos.ipynb     o pipeline completo
-requirements.txt
-```
-
-## Como rodar
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-jupyter lab notebooks/pipeline_pcos.ipynb
-```
-
-## O que o notebook faz
-
-| Etapa                  | Conteúdo                                        | Altera os dados? |
-| ---------------------- | ----------------------------------------------- | ---------------- |
-| **1 — Diagnóstico**    | 13 verificações de qualidade + exploração (EDA) | não              |
-| **1.B — Consolidação** | junção dos dois arquivos pela chave `Sl. No`    | sim              |
-| **2 — Tratamento**     | 14 correções na ordem correta + exportação      | sim              |
-
-Não inclui divisão treino/teste, balanceamento, normalização nem treino de modelos:
-isso é etapa de modelagem e pertence a um notebook seguinte.
