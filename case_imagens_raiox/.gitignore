@@ -1,0 +1,15 @@
+# As imagens do dataset NAO entram no repositorio (~1,2 GB).
+# Veja o README.md desta pasta para saber de onde baixar e onde colocar.
+train/
+test/
+val/
+dados/
+*.jpeg
+*.jpg
+*.png
+
+# Artefatos de treino
+*.pt
+*.pth
+*.keras
+*.h5
