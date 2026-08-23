@@ -13,3 +13,4 @@ dados/
 *.pth
 *.keras
 *.h5
+pasta_ignore
