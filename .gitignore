@@ -217,20 +217,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# AI / LLM assistant tooling (Claude Code, Serena MCP, Cursor, Copilot,
-# Aider, Windsurf, Codeium, Continue, etc.)
-.claude/
-CLAUDE.md
-.serena/
-.cursor/
-.cursorrules
-.aider*
-.windsurf/
-.windsurfrules
-.codeium/
-.continue/
-.github/copilot-instructions.md
-.copilot/
+# Rascunhos locais
 pasta_ignora/
 
 # Resultados de treinamento gerados automaticamente
