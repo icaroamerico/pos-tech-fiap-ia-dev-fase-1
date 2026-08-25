@@ -1,44 +1,59 @@
-# Relatório — Pneumonia em raio-X de tórax com rede convolucional
+# Documentação — Fase 1 Pós-Tech
 
-## 1. Link do Git
+## Índice
+
+1. [Relatório 1 — PCOS](#relatorio-1)
+2. [Relatório 2 — Pneumonia em raio-X de tórax com rede convolucional](#relatorio-2)
+
+<a id="relatorio-1"></a>
+
+## Relatório 1 — PCOS
+
+_A preencher._
+
+<a id="relatorio-2"></a>
+
+## Relatório 2 — Pneumonia em raio-X de tórax com rede convolucional
+
+### 1. Link do Git
 
 `https://github.com/<usuario>/<repositorio>`
 
 _mock — substituir pela URL real do repositório._
 
-## 2. Caminho do README.md
+### 2. Caminho do README.md
 
 `<repositorio>/README.md`
 
 _mock — substituir pelo caminho real._
 
-## 3. Caminho do Dockerfile
+### 3. Caminho do Dockerfile
 
 `<repositorio>/Dockerfile`
 
 _mock — substituir pelo caminho real; remover a seção se o projeto não usar Docker._
 
-## 4. Caminho do Dataset
+### 4. Caminho do Dataset
 
 `<caminho-local>/imagens_fase_1_pos_fiap`
 
 _mock — substituir pelo caminho real (e pela URL de origem do dataset, se for público)._
 
-## 5. Vídeo de demonstração
+### 5. Vídeo de demonstração
 
 `<repositorio>/docs/demonstracao.mp4`
 
 _mock — substituir pelo caminho/arquivo real._
 
-## 6. Link do vídeo
+### 6. Link do vídeo
 
 `https://<plataforma>/<id-do-video>`
 
 _mock — substituir pela URL real._
 
-## 7. Resultados obtidos + Relatório técnico
+### 7. Resultados obtidos + Relatório técnico
 
-# Pneumonia em raio-X de tórax com rede convolucional
+### Pneumonia em raio-X de tórax com rede convolucional
 
 Classificar radiografias de tórax de pacientes pediátricos em `NORMAL` (0) ou
 `PNEUMONIA` (1).
@@ -48,7 +63,7 @@ O notebook segue uma linha reta, e as seções são exatamente os passos dela:
 **1. pegar as imagens → 2. tratar → 3. separar treino/validação/teste → 4. treinar dois
 modelos → 5. comparar os resultados.**
 
-### Índice
+#### Índice
 
 1. [Discussões da análise exploratória](#sec-1)
    - [0. Ambiente](#sec-1-1)
@@ -76,24 +91,24 @@ modelos → 5. comparar os resultados.**
        - [Ajuste do limiar](#sec-4-3)
    - [7. Conclusões](#sec-4-4)
 
-### Figuras
+#### Figuras
 
-1. Contagem de imagens por classe em train/ e test/ — `imagens_layout_pdf/01-contagem-por-classe.png`
-2. Amostras de raio-X NORMAL e PNEUMONIA — `imagens_layout_pdf/02-amostras-por-classe.png`
-3. Resolução original, brilho e contraste por classe — `imagens_layout_pdf/03-resolucao-brilho-contraste.png`
-4. Original, CLAHE e variações do aumento de dados — `imagens_layout_pdf/04-clahe-e-aumento-de-dados.png`
-5. Acurácia, perda e taxa de aprendizado por época — `imagens_layout_pdf/05-acuracia-perda-e-passo.png`
-6. Matrizes de confusão no teste, limiar 0,5 — `imagens_layout_pdf/06-matrizes-de-confusao.png`
-7. Acertos e erros mais confiantes do modelo escolhido — `imagens_layout_pdf/07-acertos-e-erros-mais-confiantes.png`
-8. Curva precisão × recall e efeito de mover o limiar — `imagens_layout_pdf/08-precisao-recall-e-limiar.png`
+1. Contagem de imagens por classe em train/ e test/ — `case-raiox/imagens_layout_pdf/01-contagem-por-classe.png`
+2. Amostras de raio-X NORMAL e PNEUMONIA — `case-raiox/imagens_layout_pdf/02-amostras-por-classe.png`
+3. Resolução original, brilho e contraste por classe — `case-raiox/imagens_layout_pdf/03-resolucao-brilho-contraste.png`
+4. Original, CLAHE e variações do aumento de dados — `case-raiox/imagens_layout_pdf/04-clahe-e-aumento-de-dados.png`
+5. Acurácia, perda e taxa de aprendizado por época — `case-raiox/imagens_layout_pdf/05-acuracia-perda-e-passo.png`
+6. Matrizes de confusão no teste, limiar 0,5 — `case-raiox/imagens_layout_pdf/06-matrizes-de-confusao.png`
+7. Acertos e erros mais confiantes do modelo escolhido — `case-raiox/imagens_layout_pdf/07-acertos-e-erros-mais-confiantes.png`
+8. Curva precisão × recall e efeito de mover o limiar — `case-raiox/imagens_layout_pdf/08-precisao-recall-e-limiar.png`
 
 <a id="sec-1"></a>
 
-### 1. Discussões da análise exploratória
+#### 1. Discussões da análise exploratória
 
 <a id="sec-1-1"></a>
 
-#### 0. Ambiente
+##### 0. Ambiente
 
 **Semente fixa em todos os geradores.** *Por quê:* `random`, `numpy` e `torch` sorteiam a
 inicialização dos pesos, o embaralhamento dos lotes e as perturbações do aumento de dados.
@@ -106,7 +121,7 @@ diferentes, e parte da diferença de acurácia entre eles seria sorte, não arqu
 
 <a id="sec-1-2"></a>
 
-#### 1. Pegar as imagens
+##### 1. Pegar as imagens
 
 Dataset [Chest X-Ray Images (Pneumonia)](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia):
 radiografias em incidência ântero-posterior de pacientes de 1 a 5 anos do Guangzhou Women and
@@ -128,17 +143,17 @@ Duas leituras desta tabela, e as duas voltam no fim do notebook:
    mesma população — o `test/` foi curado à parte. *Impacto:* o número que vale é sempre o do
    `test/`, e a **linha de base a bater é 62,5%**, não 50%.
 
-![Figura 1 — Contagem de imagens por classe em train/ e test/](imagens_layout_pdf/01-contagem-por-classe.png)
+![Figura 1 — Contagem de imagens por classe em train/ e test/](case-raiox/imagens_layout_pdf/01-contagem-por-classe.png)
 
 *Figura 1 — Contagem de imagens por classe em train/ e test/.*
 
 **Como são as imagens.** Quatro de cada classe, direto do disco, sem nenhum tratamento:
 
-![Figura 2 — Amostras de raio-X NORMAL e PNEUMONIA](imagens_layout_pdf/02-amostras-por-classe.png)
+![Figura 2 — Amostras de raio-X NORMAL e PNEUMONIA](case-raiox/imagens_layout_pdf/02-amostras-por-classe.png)
 
 *Figura 2 — Amostras de raio-X NORMAL e PNEUMONIA.*
 
-![Figura 3 — Resolução original, brilho e contraste por classe](imagens_layout_pdf/03-resolucao-brilho-contraste.png)
+![Figura 3 — Resolução original, brilho e contraste por classe](case-raiox/imagens_layout_pdf/03-resolucao-brilho-contraste.png)
 
 *Figura 3 — Resolução original, brilho e contraste por classe.*
 
@@ -159,17 +174,17 @@ Os três painéis mostram os **dois problemas que o tratamento da seção 2 tem 
 
 <a id="sec-2"></a>
 
-### 2. Estratégias de pré-processamento
+#### 2. Estratégias de pré-processamento
 
 <a id="sec-2-1"></a>
 
-#### 2. Tratar as imagens
+##### 2. Tratar as imagens
 
 Quatro operações, nesta ordem. Cada uma responde a um problema visto acima.
 
 <a id="sec-2-2"></a>
 
-##### 2.1 Redimensionar para 128×128, tons de cinza
+###### 2.1 Redimensionar para 128×128, tons de cinza
 
 *O que é:* toda imagem vira uma matriz 128×128 de um canal, com `cv2.INTER_AREA`.
 
@@ -187,7 +202,7 @@ paciente e que os primeiros kernels aprenderiam com prazer.
 
 <a id="sec-2-3"></a>
 
-##### 2.2 Dividir por 255
+###### 2.2 Dividir por 255
 
 *O que é:* levar o pixel de `[0, 255]` para `[0, 1]`, em `float32`, **por lote**.
 
@@ -203,7 +218,7 @@ grandeza maiores e o treino diverge ou estagna.
 
 <a id="sec-2-4"></a>
 
-##### 2.3 CLAHE — equalização de contraste local
+###### 2.3 CLAHE — equalização de contraste local
 
 *O que é:* *Contrast Limited Adaptive Histogram Equalization*. Equaliza o histograma em blocos
 de 8×8, não na imagem toda: cada região ganha o próprio ajuste, o que traz à tona textura em
@@ -222,7 +237,7 @@ adquirido à parte. É a explicação mais provável para o abismo entre 3% de e
 
 <a id="sec-2-5"></a>
 
-##### 2.4 Aumento de dados (só no treino)
+###### 2.4 Aumento de dados (só no treino)
 
 *O que é:* a cada época, uma transformação aleatória diferente sobre a mesma imagem — rotação,
 zoom, deslocamento e espelhamento horizontal, tudo numa única matriz afim.
@@ -247,7 +262,7 @@ treino é medido sobre imagens perturbadas, que são mais difíceis que as origi
 
 O que cada etapa faz com a mesma radiografia:
 
-![Figura 4 — Original, CLAHE e variações do aumento de dados](imagens_layout_pdf/04-clahe-e-aumento-de-dados.png)
+![Figura 4 — Original, CLAHE e variações do aumento de dados](case-raiox/imagens_layout_pdf/04-clahe-e-aumento-de-dados.png)
 
 *Figura 4 — Original, CLAHE e variações do aumento de dados.*
 
@@ -258,7 +273,7 @@ esquerda é a de validação e teste.
 
 <a id="sec-2-6"></a>
 
-#### 3. Separar treino, validação e teste
+##### 3. Separar treino, validação e teste
 
 *O que é:* `train/` é cortado em 80% treino e 20% validação, de forma **estratificada**; o
 `test/` inteiro fica intocado até a seção 5.
@@ -282,11 +297,11 @@ O `Dataset` abaixo é onde o tratamento da seção 2 encontra a divisão: ele re
 
 <a id="sec-3"></a>
 
-### 3. Modelos usados e porquê
+#### 3. Modelos usados e porquê
 
 <a id="sec-3-1"></a>
 
-#### Por que convolução
+##### Por que convolução
 
 A tentativa anterior descreveu a imagem à mão — mediana, Sobel, média ponderada — e jogou o
 vetor resultante numa MLP: 77% de acurácia no teste. O gargalo não era a rede, era o descritor. Filtro de borda fixo não sabe o que é
@@ -313,7 +328,7 @@ importa clinicamente, não a acurácia.
 
 <a id="sec-3-2"></a>
 
-#### 4. Os dois modelos
+##### 4. Os dois modelos
 
 Os dois recebem **exatamente a mesma entrada** — mesmo CLAHE, mesmo aumento, mesma divisão,
 mesma semente. A única coisa que muda é a arquitetura, e é isso que torna a comparação
@@ -321,7 +336,7 @@ interpretável: se um vencer, foi a arquitetura, não o pré-processamento.
 
 <a id="sec-3-3"></a>
 
-##### Modelo 1 — CNN simples (a referência mínima)
+###### Modelo 1 — CNN simples (a referência mínima)
 
 ```
 [Conv 3x3 -> ReLU -> MaxPool 2x2] x 3     ->  Flatten  ->  Linear(64)  ->  Linear(1)
@@ -342,7 +357,7 @@ mais se decora. Sem `BatchNorm`, a escala das ativações depende da inicializa�
 
 <a id="sec-3-4"></a>
 
-##### Modelo 2 — CNN profunda com BatchNorm e Dropout
+###### Modelo 2 — CNN profunda com BatchNorm e Dropout
 
 ```
 [Conv 3x3 -> BatchNorm -> ReLU -> (Dropout) -> MaxPool 2x2] x 5  ->  Flatten -> Linear(128) -> Dropout -> Linear(1)
@@ -375,7 +390,7 @@ modelo 1:
 
 <a id="sec-3-5"></a>
 
-##### Saída em logit, não em probabilidade
+###### Saída em logit, não em probabilidade
 
 Os dois terminam numa camada linear de **um neurônio**, sem `sigmoid`, e a perda é
 `BCEWithLogitsLoss`. *Por quê:* essa perda aplica o sigmoide internamente com o truque do
@@ -390,7 +405,7 @@ de padrões (convolução). É essa troca que a comparação de resultados vai m
 
 <a id="sec-3-6"></a>
 
-#### 5. Treinar
+##### 5. Treinar
 
 Mesmo protocolo para os dois modelos: **RMSprop**, passo inicial 1e-3, lotes de 32, 12 épocas.
 O passo cai por um fator de 0,3 sempre que a acurácia de validação passa 2 épocas sem melhorar
@@ -414,7 +429,7 @@ Três decisões menores que valem registro:
 - **`drop_last=True` no treino.** O `BatchNorm` calcula média e desvio dentro do lote; um lote
   final com 2 ou 3 imagens dá estatística instável e injeta ruído no fim de cada época.
 
-![Figura 5 — Acurácia, perda e taxa de aprendizado por época](imagens_layout_pdf/05-acuracia-perda-e-passo.png)
+![Figura 5 — Acurácia, perda e taxa de aprendizado por época](case-raiox/imagens_layout_pdf/05-acuracia-perda-e-passo.png)
 
 *Figura 5 — Acurácia, perda e taxa de aprendizado por época.*
 
@@ -427,11 +442,11 @@ validação.
 
 <a id="sec-4"></a>
 
-### 4. Resultados e interpretação dos dados
+#### 4. Resultados e interpretação dos dados
 
 <a id="sec-4-1"></a>
 
-#### 6. Resultados
+##### 6. Resultados
 
 Só agora o `test/` entra. As 624 imagens não participaram de nenhuma decisão até aqui — nem de
 peso, nem de arquitetura, nem de escolha de modelo. Elas passam pelo CLAHE determinístico e por
@@ -449,13 +464,13 @@ apostar na classe frequente"; o recall de PNEUMONIA é o que importa clinicament
 de saturar. O **AUC** completa o quadro por não depender do limiar: ele mede se a rede ordena
 bem os pacientes, independentemente de onde se corte.
 
-![Figura 6 — Matrizes de confusão no teste, limiar 0,5](imagens_layout_pdf/06-matrizes-de-confusao.png)
+![Figura 6 — Matrizes de confusão no teste, limiar 0,5](case-raiox/imagens_layout_pdf/06-matrizes-de-confusao.png)
 
 *Figura 6 — Matrizes de confusão no teste, limiar 0,5.*
 
 <a id="sec-4-2"></a>
 
-##### Qual dos dois escolher — decidido na validação, não no teste
+###### Qual dos dois escolher — decidido na validação, não no teste
 
 A tabela acima é o **relatório** do experimento, não o critério de decisão. Escolher o vencedor
 olhando a coluna de teste seria usar o teste para tomar uma decisão, e a partir daí o número dele
@@ -473,13 +488,13 @@ normais classificados como pneumonia. Era ele que dominava o erro da MLP artesan
 honesta), e sim os **confiantes** — probabilidade longe do corte e ainda assim errada. São eles
 que a figura abaixo mostra.
 
-![Figura 7 — Acertos e erros mais confiantes do modelo escolhido](imagens_layout_pdf/07-acertos-e-erros-mais-confiantes.png)
+![Figura 7 — Acertos e erros mais confiantes do modelo escolhido](case-raiox/imagens_layout_pdf/07-acertos-e-erros-mais-confiantes.png)
 
 *Figura 7 — Acertos e erros mais confiantes do modelo escolhido.*
 
 <a id="sec-4-3"></a>
 
-##### Ajuste do limiar
+###### Ajuste do limiar
 
 *O que é:* a rede devolve uma probabilidade; 0,5 é só o corte padrão. Mover o corte troca um
 tipo de erro pelo outro **sem retreinar nada**.
@@ -499,7 +514,7 @@ construção. O critério é a **acurácia balanceada** — média dos dois reca
 PNEUMONIA igualmente, ao contrário da acurácia simples, que num conjunto 74/26 se deixa comprar
 por acertar a classe frequente.
 
-![Figura 8 — Curva precisão × recall e efeito de mover o limiar](imagens_layout_pdf/08-precisao-recall-e-limiar.png)
+![Figura 8 — Curva precisão × recall e efeito de mover o limiar](case-raiox/imagens_layout_pdf/08-precisao-recall-e-limiar.png)
 
 *Figura 8 — Curva precisão × recall e efeito de mover o limiar.*
 
@@ -530,7 +545,7 @@ sobre o limiar.
 
 <a id="sec-4-4"></a>
 
-#### 7. Conclusões
+##### 7. Conclusões
 
 **O experimento contradisse a hipótese da seção 4 — e esse é o resultado mais útil do notebook.**
 
