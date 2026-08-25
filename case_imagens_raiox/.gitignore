@@ -14,3 +14,7 @@ dados/
 *.keras
 *.h5
 pasta_ignore
+
+# Somente o notebook principal fica versionado
+*.ipynb
+!cnn-raiox-torax.ipynb
