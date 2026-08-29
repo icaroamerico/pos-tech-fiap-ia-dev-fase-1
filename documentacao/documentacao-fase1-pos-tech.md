@@ -9,7 +9,51 @@
 
 ## Relatório 1 — PCOS
 
-_A preencher._
+<a id="relatorio-2"></a>
+
+## Relatório 2 — Pneumonia em raio-X de tórax com rede convolucional
+
+### 1. Link do Git
+
+https://github.com/icaroamerico/pos-tech-fiap-ia-dev-fase-1/blob/main/documentacao/documentacao-fase1-pos-tech.md
+
+_mock — substituir pela URL real do repositório._
+
+### 2. Caminho do README.md
+
+https://github.com/icaroamerico/pos-tech-fiap-ia-dev-fase-1/blob/main/README.md
+
+_mock — substituir pelo caminho real._
+
+### 3. Caminho do Dockerfile
+
+N/A
+
+_mock — substituir pelo caminho real; remover a seção se o projeto não usar Docker._
+
+### 4. Caminho do Dataset
+
+Dataset original:
+https://github.com/icaroamerico/pos-tech-fiap-ia-dev-fase-1/blob/main/base_dados/PCOS_infertility.csv
+
+Dataset tratado: 
+https://github.com/icaroamerico/pos-tech-fiap-ia-dev-fase-1/blob/main/base_dados_tratada/PCOS_unificado.csv
+
+_mock — substituir pelo caminho real (e pela URL de origem do dataset, se for público)._
+
+### 5. Vídeo de demonstração
+
+`<repositorio>/docs/demonstracao.mp4`
+
+_mock — substituir pelo caminho/arquivo real._
+
+### 6. Link do vídeo
+
+`https://<plataforma>/<id-do-video>`
+
+_mock — substituir pela URL real._
+
+
 
 <a id="relatorio-2"></a>
 
