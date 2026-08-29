@@ -5,53 +5,139 @@
 1. [Relatório 1 — PCOS](#relatorio-1)
 2. [Relatório 2 — Pneumonia em raio-X de tórax com rede convolucional](#relatorio-2)
 
+---
+
 <a id="relatorio-1"></a>
 
 ## Relatório 1 — PCOS
 
-<a id="relatorio-2"></a>
+Este notebook recebe o dataset já tratado (`base_dados_tratada/PCOS_unificado.csv`)
+e executa a etapa de **modelagem**: separação treino/teste, treinamento de cinco
+classificadores e comparação das métricas.
 
-## Relatório 2 — Pneumonia em raio-X de tórax com rede convolucional
+### Análise Técnica
 
-### 1. Link do Git
+<a id="etapa3_0"></a>
+#### 3.0 — Carregamento e split treino/teste
+
+Localiza a raiz do projeto, lê o CSV unificado e separa 80% para treino e 20% para
+teste. O `stratify=y` garante que a proporção de pacientes com e sem SOP seja a
+mesma nos dois conjuntos.
+
+Base carregada: 541 linhas x 49 colunas
+Features: 46
+Treino: 432 registros ({0: 291, 1: 141})
+Teste:  109 registros ({0: 73, 1: 36})
+
+<a id="etapa3_1"></a>
+#### 3.1 — Pré-processamento
+
+Aplica `StandardScaler` nas colunas numéricas e `OneHotEncoder` na coluna categórica
+`Blood Group`. Tudo isso é feito dentro de um `Pipeline` para evitar *data leakage*:
+o pré-processador é ajustado apenas no treino e depois aplicado no teste.
+
+<a id="etapa3_2"></a>
+#### 3.2 — Modelos candidatos
+
+São testados cinco classificadores com características distintas:
+
+- **Regressão Logística**: rápida, interpretável e com saída probabilística.
+- **Árvore de Decisão**: regras explícitas do tipo "se... então".
+- **KNN (k=5)**: classifica pelo voto dos vizinhos mais próximos.
+- **Random Forest**: conjunto de árvores, geralmente mais robusto.
+- **SVM (RBF)**: encontra fronteiras não-lineares entre as classes.
+
+<a id="etapa3_3"></a>
+#### 3.3 — Treinamento e métricas
+
+Cada modelo é inserido em um `Pipeline` (pré-processamento + classificador),
+treinado na base de treino e avaliado na base de teste.
+
+As métricas escolhidas refletem diferentes aspectos do problema:
+
+- **Acurácia**: acertos gerais.
+- **Precisão**: confiabilidade dos diagnósticos positivos.
+- **Recall**: capacidade de não deixar casos de SOP passarem.
+- **F1-Score**: equilíbrio entre precisão e recall.
+- **AUC-ROC**: separação geral entre as classes.
+
+##### Resultados — Métricas na Base de Teste (20%)
+
+| Modelo | Acurácia | Precisão | Recall | F1-Score | AUC-ROC |
+|--------|----------|----------|--------|----------|---------|
+| Random Forest | 0.9083 | 0.8824 | 0.8333 | 0.8571 | 0.9387 |
+| SVM (RBF) | 0.8807 | 0.8108 | 0.8333 | 0.8219 | 0.9315 |
+| Regressão Logística | 0.8532 | 0.7381 | 0.8611 | 0.7949 | 0.9277 |
+| KNN (k=5) | 0.8624 | 0.8889 | 0.6667 | 0.7619 | 0.9007 |
+| Árvore de Decisão | 0.8532 | 0.7941 | 0.7500 | 0.7714 | 0.8643 |
+
+<a id="etapa3_4"></a>
+#### 3.4 — Comparação visual das métricas
+
+O gráfico de barras mostra o desempenho de cada algoritmo em cada métrica,
+facilitando identificar pontos fortes e fraquezas de cada um.
+
+<a id="etapa3_5"></a>
+#### 3.5 — Matrizes de confusão
+
+Cada célula da matriz representa:
+
+- **Verdadeiros Negativos**: sem SOP classificado corretamente.
+- **Falsos Positivos**: sem SPO classificado como com SOP.
+- **Falsos Negativos**: com SOP não detectado — o cenário mais crítico.
+- **Verdadeiros Positivos**: com SOP detectado.  
+
+![alt text](image-1.png)  
+
+<a id="etapa3_6"></a>
+#### 3.6 — Discussão e escolha do modelo
+
+No contexto de saúde da mulher, o mais importante é não deixar casos de SOP sem
+diagnóstico (alto recall). Ao mesmo tempo, queremos evitar falsos alarmes
+(razoável precisão).
+
+A **Random Forest** apresenta o melhor equilíbrio entre as métricas, com alto
+AUC-ROC e F1-Score. A **Regressão Logística** e o **SVM (RBF)** são alternativas
+sólidas, especialmente se a interpretabilidade ou o tempo de resposta forem
+prioridades.
+
+Próximos passos recomendados:
+
+1. Ajuste fino de hiperparâmetros com `GridSearchCV` ou `RandomizedSearchCV`.
+2. Validação cruzada (k-fold estratificado) para confirmar robustez.
+3. Análise de importância das features no melhor modelo.  
+
+### Referências e Metadados
+
+#### 1. Link do Git
 
 https://github.com/icaroamerico/pos-tech-fiap-ia-dev-fase-1/blob/main/documentacao/documentacao-fase1-pos-tech.md
 
-_mock — substituir pela URL real do repositório._
-
-### 2. Caminho do README.md
+#### 2. Caminho do README.md
 
 https://github.com/icaroamerico/pos-tech-fiap-ia-dev-fase-1/blob/main/README.md
 
-_mock — substituir pelo caminho real._
-
-### 3. Caminho do Dockerfile
+#### 3. Caminho do Dockerfile
 
 N/A
 
-_mock — substituir pelo caminho real; remover a seção se o projeto não usar Docker._
+#### 4. Caminho do Dataset
 
-### 4. Caminho do Dataset
-
-Dataset original:
+**Dataset original:**
 https://github.com/icaroamerico/pos-tech-fiap-ia-dev-fase-1/blob/main/base_dados/PCOS_infertility.csv
 
-Dataset tratado: 
-https://github.com/icaroamerico/pos-tech-fiap-ia-dev-fase-1/blob/main/base_dados_tratada/PCOS_unificado.csv
+**Dataset tratado:** 
+https://github.com/icaroamerico/pos-tech-fiap-ia-dev-fase-1/blob/main/base_dados_tratada/PCOS_unificado.csv  
 
-_mock — substituir pelo caminho real (e pela URL de origem do dataset, se for público)._
+![alt text](image.png)
 
-### 5. Vídeo de demonstração
+#### 5. Vídeo de demonstração
 
 `<repositorio>/docs/demonstracao.mp4`
 
-_mock — substituir pelo caminho/arquivo real._
-
-### 6. Link do vídeo
+#### 6. Link do vídeo
 
 `https://<plataforma>/<id-do-video>`
-
-_mock — substituir pela URL real._
 
 
 
